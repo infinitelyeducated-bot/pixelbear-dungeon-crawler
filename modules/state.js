@@ -73,6 +73,7 @@ export function createPartyMember(game, name, classKey) {
     const baseStats = CLASSES[classKey];
     const classSettings = {
         fighter: { race: 'Human', armorClass: 14 },
+        archer: { race: 'Elf', armorClass: 13 },
         rogue: { race: 'Elf', armorClass: 12 },
         wizard: { race: 'Gnome', armorClass: 10 },
         cleric: { race: 'Dwarf', armorClass: 16 }

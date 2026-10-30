@@ -94,6 +94,7 @@ Every class has three abilities, used with the buttons under Player Options or t
 | Class   | Attack (1)    | Spell (2)                          | Power (3)                 |
 |---------|---------------|------------------------------------|---------------------------|
 | Fighter | Sword Strike 1d8 | Battle Cry — self-bless + AoE thunder | Cleave 2d8 — hits all adjacent |
+| Archer  | Bow Shot 1d8 (range 5) | Pinning Shot — slows target 3 turns | Arrow Volley 2d8 — up to 3 enemies |
 | Rogue   | Dagger Slash 1d6 | Poison Vial — ranged, poisons 3 turns | Backstab 3d6 — can crit for +50% |
 | Wizard  | Arcane Bolt 1d10 | Fireball 2d6 — splash half to adjacent | Lightning Storm 3d10 — strongest enemy |
 | Cleric  | Mace Blow 1d6 | Healing Word 2d4 — heals most wounded ally | Divine Smite 2d8 radiant |

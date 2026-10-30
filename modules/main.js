@@ -37,7 +37,7 @@ function startNewGame() {
     createPartyMember(game, 'Brienne', 'rogue');
     createPartyMember(game, 'Cedric', 'wizard');
     createPartyMember(game, 'Dalia', 'cleric');
-    createPartyMember(game, 'Elara', 'fighter');
+    createPartyMember(game, 'Elara', 'archer');
     createPartyMember(game, 'Finn', 'rogue');
     generateMap(game, activeMember(game), logMessage);
     updateUI();

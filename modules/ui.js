@@ -9,6 +9,7 @@ import { hasStatusEffect } from './party.js';
 
 const CLASS_AVATARS = {
     fighter: '⚔',
+    archer: '🏹',
     rogue: '🗡',
     wizard: '🔮',
     cleric: '✚'

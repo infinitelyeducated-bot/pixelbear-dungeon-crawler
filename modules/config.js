@@ -27,6 +27,7 @@ export const PLAYER_MARKERS = ['@', '1', '2', '3', '4', '5'];
 
 export const CLASSES = {
     fighter: { name: "Fighter", hp: 15, maxHp: 15, attack: 4, defense: 3, xp: 0, level: 1 },
+    archer:  { name: "Archer",  hp: 13, maxHp: 13, attack: 5, defense: 2, xp: 0, level: 1 },
     rogue:   { name: "Rogue",   hp: 12, maxHp: 12, attack: 5, defense: 2, xp: 0, level: 1 },
     wizard:  { name: "Wizard",  hp: 10, maxHp: 10, attack: 6, defense: 1, xp: 0, level: 1 },
     cleric:  { name: "Cleric",  hp: 14, maxHp: 14, attack: 3, defense: 4, xp: 0, level: 1 }
@@ -34,6 +35,7 @@ export const CLASSES = {
 
 export const CLASS_SETTINGS = {
     fighter: { race: 'Human', armorClass: 14 },
+    archer:  { race: 'Elf',   armorClass: 13 },
     rogue:   { race: 'Elf',   armorClass: 12 },
     wizard:  { race: 'Gnome', armorClass: 10 },
     cleric:  { race: 'Dwarf', armorClass: 16 }

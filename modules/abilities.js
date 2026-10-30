@@ -14,6 +14,13 @@ export const ABILITIES = {
         power:   { name: 'Cleave',       dice: [2, 8],  stat: 'strength',  type: 'melee',  range: 1, cooldown: 3,
                    description: 'Heavy swing hitting every adjacent enemy.' }
     },
+    archer: {
+        attack:  { name: 'Bow Shot',     dice: [1, 8],  stat: 'dexterity', type: 'ranged', range: 5 },
+        spell:   { name: 'Pinning Shot', dice: [1, 6],  stat: 'dexterity', type: 'ranged', range: 5, cost: 1,
+                   description: 'Pins the target: slowed for 3 turns.' },
+        power:   { name: 'Arrow Volley', dice: [2, 8],  stat: 'dexterity', type: 'ranged', range: 5, cooldown: 3,
+                   description: 'Rains arrows on up to 3 enemies in range.' }
+    },
     rogue: {
         attack:  { name: 'Dagger Slash', dice: [1, 6],  stat: 'dexterity', type: 'melee',  range: 1 },
         spell:   { name: 'Poison Vial',  dice: [1, 6],  stat: 'dexterity', type: 'ranged', range: 3, cost: 1,
@@ -160,6 +167,16 @@ export function useAbility(game, member, slot, logMessage) {
         return true;
     }
 
+    if (slot === 'power' && member.classKey === 'archer') {
+        // Arrow Volley: up to 3 enemies in range
+        const roll = gameRoll(count, sides, bonus, `${member.name} ${ability.name}`);
+        member.powerCooldown = ability.cooldown;
+        const struck = targets.slice(0, 3);
+        for (const target of struck) damageMonster(game, member, target, roll.total, ability.name, logMessage);
+        logMessage(`${member.name} looses an ${ability.name} [${roll.rolls.join('+')}${bonus ? '+' + bonus : ''}] striking ${struck.length} enem${struck.length > 1 ? 'ies' : 'y'} for ${roll.total} each.`, member);
+        return true;
+    }
+
     if (slot === 'power' && member.classKey === 'wizard') {
         // Lightning Storm: strongest enemy in range
         const target = targets.sort((a, b) => b.monster.hp - a.monster.hp)[0];
@@ -208,6 +225,13 @@ export function useAbility(game, member, slot, logMessage) {
                 logMessage(`${target.monster.name} is poisoned!`, null, target.monster.name);
             }
             logMessage(`${member.name} throws a ${ability.name} [${roll.rolls.join('+')}${bonus ? '+' + bonus : ''}] at ${target.monster.name} for ${roll.total} poison damage.`, member);
+        } else if (member.classKey === 'archer') {
+            damageMonster(game, member, target, roll.total, ability.name, logMessage);
+            if (target.monster.hp > 0) {
+                target.monster.slowed = 3;
+                logMessage(`${target.monster.name} is pinned and slowed!`, null, target.monster.name);
+            }
+            logMessage(`${member.name} fires a ${ability.name} [${roll.rolls.join('+')}${bonus ? '+' + bonus : ''}] at ${target.monster.name} for ${roll.total} damage.`, member);
         }
         return true;
     }
