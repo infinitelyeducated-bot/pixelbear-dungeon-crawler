@@ -498,10 +498,19 @@ function bindGameUI() {
     document.getElementById('readme-close-top')?.addEventListener('click', () => document.getElementById('readme-dialog')?.close());
     document.getElementById('readme-close-bottom')?.addEventListener('click', () => document.getElementById('readme-dialog')?.close());
     const printReadme = () => {
+        // A modal dialog sits in the browser top layer, which clips printing
+        // to a single page. Close it first; print CSS shows its content as
+        // normal flowing block content, then reopen afterwards.
+        document.getElementById('readme-dialog')?.close();
         document.body.classList.add('printing-readme');
         window.print();
     };
-    window.addEventListener('afterprint', () => document.body.classList.remove('printing-readme'));
+    window.addEventListener('afterprint', () => {
+        if (document.body.classList.contains('printing-readme')) {
+            document.body.classList.remove('printing-readme');
+            document.getElementById('readme-dialog')?.showModal();
+        }
+    });
     document.getElementById('readme-print-top')?.addEventListener('click', printReadme);
     document.getElementById('readme-print-bottom')?.addEventListener('click', printReadme);
     document.getElementById('open-sheets-button')?.addEventListener('click', () => {
