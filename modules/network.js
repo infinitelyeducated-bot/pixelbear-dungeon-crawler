@@ -3,22 +3,31 @@ import { SIGNALING_SERVER_URL } from './config.js';
 export class NetworkManager extends EventTarget {
     constructor(iceServers = null) {
         super();
-        this.mode = null; // 'host' | 'client'
+        this.mode = null;
         this.peerId = null;
         this.hostId = null;
-        this.connections = new Map(); // peerId -> { pc, channel, assignedMemberId }
+        this.connections = new Map();
         this.socket = null;
         this.pendingCandidates = [];
         this.isHost = false;
-        this.localMemberId = null; // The party member this peer controls
+        this.localMemberId = null;
+        this.hostAsGm = false;
         this.iceServers = iceServers;
         this.reconnectTimer = null;
         this.signalingUrl = null;
+        this.reconnectAttempts = 0;
+        this.maxReconnectAttempts = 5;
+        this.lastKnownAssignments = new Map();
+        this.chatLog = [];
+        this.turnTimer = null;
+        this.turnTimeLeft = 0;
+        this.turnTimerDuration = 0;
     }
 
-    async startHost(signalingUrl = SIGNALING_SERVER_URL) {
+    async startHost(signalingUrl = SIGNALING_SERVER_URL, options = {}) {
         this.mode = 'host';
         this.isHost = true;
+        this.hostAsGm = options.hostAsGm ?? false;
         this.signalingUrl = signalingUrl;
         this.peerId = generatePeerId();
         await this.connectSignaling(signalingUrl, this.peerId);
@@ -26,14 +35,15 @@ export class NetworkManager extends EventTarget {
         return this.peerId;
     }
 
-    async joinHost(hostId, signalingUrl = SIGNALING_SERVER_URL) {
+    async joinHost(hostId, signalingUrl = SIGNALING_SERVER_URL, options = {}) {
         this.mode = 'client';
         this.isHost = false;
         this.hostId = hostId;
+        this.hostAsGm = false;
         this.signalingUrl = signalingUrl;
-        this.peerId = generatePeerId();
+        this.peerId = options.peerId || generatePeerId();
         await this.connectSignaling(signalingUrl, this.peerId);
-        this.sendSignal({ type: 'join', target: hostId, sender: this.peerId });
+        this.sendSignal({ type: 'join', target: hostId, sender: this.peerId, reconnect: options.reconnect || false });
         this.dispatchEvent(new CustomEvent('status', { detail: `Connecting to ${hostId}...` }));
     }
 
@@ -41,19 +51,36 @@ export class NetworkManager extends EventTarget {
         return new Promise((resolve, reject) => {
             try {
                 this.socket = new WebSocket(`${url}?peer=${peerId}`);
-                this.socket.onopen = () => resolve();
+                this.socket.onopen = () => {
+                    this.reconnectAttempts = 0;
+                    resolve();
+                };
                 this.socket.onerror = () => reject(new Error('Signaling server connection failed.'));
                 this.socket.onmessage = event => this.handleSignalingMessage(JSON.parse(event.data));
-                this.socket.onclose = () => this.dispatchEvent(new CustomEvent('status', { detail: 'Signaling server disconnected.' }));
+                this.socket.onclose = () => {
+                    this.dispatchEvent(new CustomEvent('status', { detail: 'Signaling server disconnected.' }));
+                    this.scheduleReconnect();
+                };
             } catch (error) {
                 reject(error);
             }
         });
     }
 
+    scheduleReconnect() {
+        if (this.mode !== 'client' || !this.hostId || this.reconnectAttempts >= this.maxReconnectAttempts) return;
+        this.reconnectAttempts++;
+        const delay = Math.min(30000, 2000 * Math.pow(2, this.reconnectAttempts - 1));
+        this.dispatchEvent(new CustomEvent('status', { detail: `Reconnecting in ${delay / 1000}s (attempt ${this.reconnectAttempts})...` }));
+        this.reconnectTimer = window.setTimeout(() => {
+            this.joinHost(this.hostId, this.signalingUrl, { peerId: this.peerId, reconnect: true })
+                .catch(() => this.scheduleReconnect());
+        }, delay);
+    }
+
     handleSignalingMessage(message) {
         if (message.type === 'join' && this.isHost) {
-            this.acceptPeer(message.sender);
+            this.acceptPeer(message.sender, message.reconnect);
             return;
         }
         if (message.type === 'offer') {
@@ -69,10 +96,10 @@ export class NetworkManager extends EventTarget {
         }
     }
 
-    async acceptPeer(peerId) {
+    async acceptPeer(peerId, reconnect = false) {
         const pc = this.createPeerConnection(peerId);
         const channel = pc.createDataChannel('game', { ordered: true });
-        this.wrapChannel(peerId, channel);
+        this.wrapChannel(peerId, channel, reconnect);
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
         this.sendSignal({ type: 'offer', target: peerId, sender: this.peerId, sdp: offer });
@@ -118,15 +145,16 @@ export class NetworkManager extends EventTarget {
         return pc;
     }
 
-    wrapChannel(peerId, channel) {
+    wrapChannel(peerId, channel, reconnect = false) {
         const connection = this.connections.get(peerId);
         if (connection) connection.channel = channel;
         channel.onopen = () => {
-            this.dispatchEvent(new CustomEvent('peerConnected', { detail: { peerId, channel } }));
+            this.dispatchEvent(new CustomEvent('peerConnected', { detail: { peerId, channel, reconnect } }));
             this.dispatchEvent(new CustomEvent('status', { detail: `Peer ${peerId} connected.` }));
         };
         channel.onclose = () => {
             this.dispatchEvent(new CustomEvent('peerDisconnected', { detail: { peerId } }));
+            this.lastKnownAssignments.set(peerId, this.connections.get(peerId)?.assignedMemberId || this.lastKnownAssignments.get(peerId));
             this.connections.delete(peerId);
         };
         channel.onmessage = event => {
@@ -137,6 +165,7 @@ export class NetworkManager extends EventTarget {
     assignMember(peerId, memberId) {
         const connection = this.connections.get(peerId);
         if (connection) connection.assignedMemberId = memberId;
+        this.lastKnownAssignments.set(peerId, memberId);
     }
 
     getAssignedMemberId(peerId) {
@@ -165,11 +194,48 @@ export class NetworkManager extends EventTarget {
         if (channel && channel.readyState === 'open') channel.send(JSON.stringify(data));
     }
 
+    sendChat(text) {
+        const message = { type: 'chat', sender: this.peerId, text, timestamp: Date.now() };
+        this.chatLog.push(message);
+        if (this.isHost) {
+            this.broadcast(message);
+        } else {
+            this.broadcast(message);
+        }
+        return message;
+    }
+
+    startTurnTimer(seconds) {
+        this.stopTurnTimer();
+        this.turnTimerDuration = seconds;
+        this.turnTimeLeft = seconds;
+        this.turnTimer = window.setInterval(() => {
+            this.turnTimeLeft--;
+            this.dispatchEvent(new CustomEvent('turnTick', { detail: { timeLeft: this.turnTimeLeft, duration: this.turnTimerDuration } }));
+            if (this.turnTimeLeft <= 0) {
+                this.stopTurnTimer();
+                this.dispatchEvent(new CustomEvent('turnTimeout', { detail: {} }));
+            }
+        }, 1000);
+    }
+
+    stopTurnTimer() {
+        if (this.turnTimer) {
+            window.clearInterval(this.turnTimer);
+            this.turnTimer = null;
+        }
+    }
+
+    getRestoredAssignment(peerId) {
+        return this.lastKnownAssignments.get(peerId) || null;
+    }
+
     close() {
         for (const { pc } of this.connections.values()) pc.close();
         this.connections.clear();
         if (this.socket) this.socket.close();
         this.mode = null;
+        this.stopTurnTimer();
     }
 }
 

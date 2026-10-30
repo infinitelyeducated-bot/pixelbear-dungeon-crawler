@@ -6,7 +6,7 @@ import { LayoutManager } from './layout.js';
 import { NetworkManager } from './network.js';
 import { renderMap, renderLegend, updateActionButtons, renderCharacterSheets, updateMapSizing, centerMapOnActiveMember, renderMinimap, renderTurnOrder, renderFloatingTexts, updateFloatingTexts } from './ui.js';
 import { bindInput } from './input.js';
-import { handleRemoteAction } from './network-actions.js';
+import { handleRemoteAction, sendLocalAction, confirmLocalAction, rejectLocalAction } from './network-actions.js';
 import { MAX_PARTY_SIZE, CLASSES, DIFFICULTIES, ITEMS } from './config.js';
 
 let game = createGame();
@@ -159,10 +159,10 @@ function setupNetworkHandlers() {
         document.getElementById('network-status').textContent = event.detail;
     });
     networkManager.addEventListener('peerConnected', event => {
-        const { peerId } = event.detail;
-        logMessage(`Peer ${peerId} connected.`, null, 'Network');
+        const { peerId, reconnect } = event.detail;
+        logMessage(`Peer ${peerId} connected${reconnect ? ' (reconnect)' : ''}.`, null, 'Network');
         if (networkManager.isHost) {
-            const assigned = assignPeerToMember(peerId);
+            const assigned = assignPeerToMember(peerId, reconnect);
             networkManager.sendTo(peerId, { type: 'state', game, yourMemberId: assigned });
             networkManager.broadcast({ type: 'sync', game });
         }
@@ -187,20 +187,70 @@ function setupNetworkHandlers() {
         } else if (data.type === 'sync') {
             game = data.game;
             updateUI();
+        } else if (data.type === 'actionConfirmed') {
+            confirmLocalAction(data.actionId);
+            game = data.game;
+            updateUI();
+        } else if (data.type === 'actionRejected') {
+            rejectLocalAction(data.actionId);
+            logMessage(`Action rejected: ${data.reason}`, activeMember(game));
+        } else if (data.type === 'chat') {
+            appendChatMessage(data);
+        }
+    });
+    networkManager.addEventListener('turnTick', event => {
+        const { timeLeft, duration } = event.detail;
+        const timerDisplay = document.getElementById('turn-timer');
+        if (timerDisplay) timerDisplay.textContent = `${timeLeft}s / ${duration}s`;
+    });
+    networkManager.addEventListener('turnTimeout', () => {
+        logMessage('Turn timer expired.', activeMember(game));
+        if (!networkManager.isHost) {
+            sendLocalAction(networkManager, 'endTurn', {});
+        } else {
+            import('./actions.js').then(m => m.finishTurn(game, logMessage, updateUI, broadcast));
         }
     });
 }
 
-function assignPeerToMember(peerId) {
+function appendChatMessage(message) {
+    const chatLog = document.getElementById('chat-log');
+    if (!chatLog) return;
+    const entry = document.createElement('div');
+    entry.className = 'chat-entry';
+    const time = new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    entry.innerHTML = `<span class="chat-time">[${time}]</span> <span class="chat-sender">${escapeHtml(message.sender)}</span>: ${escapeHtml(message.text)}`;
+    chatLog.appendChild(entry);
+    chatLog.scrollTop = chatLog.scrollHeight;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function assignPeerToMember(peerId, reconnect = false) {
     const used = new Set([networkManager.localMemberId]);
     for (const conn of networkManager.connections.values()) {
         if (conn.assignedMemberId) used.add(conn.assignedMemberId);
     }
-    const available = game.party.find(m => m.hp > 0 && !used.has(m.id));
-    if (available) {
-        networkManager.assignMember(peerId, available.id);
-        logMessage(`${available.name} is now controlled by peer ${peerId}.`, null, 'Network');
-        return available.id;
+    let chosen = null;
+    if (reconnect) {
+        const previous = networkManager.getRestoredAssignment(peerId);
+        const previousMember = previous ? game.party.find(m => m.id === previous && m.hp > 0) : null;
+        if (previousMember && !used.has(previous)) {
+            chosen = previousMember;
+            logMessage(`${chosen.name} reassigned to reconnected peer ${peerId}.`, null, 'Network');
+        }
+    }
+    if (!chosen) {
+        chosen = game.party.find(m => m.hp > 0 && !used.has(m.id));
+    }
+    if (chosen) {
+        networkManager.assignMember(peerId, chosen.id);
+        if (!reconnect) logMessage(`${chosen.name} is now controlled by peer ${peerId}.`, null, 'Network');
+        return chosen.id;
     }
     logMessage(`Peer ${peerId} connected, but no party members are available to assign.`, null, 'Network');
     return null;
@@ -212,12 +262,13 @@ function bindNetworkUI() {
     document.getElementById('network-cancel')?.addEventListener('click', () => dialog?.close());
     document.getElementById('host-button')?.addEventListener('click', async () => {
         const url = document.getElementById('signaling-url').value;
+        const hostAsGm = document.getElementById('host-as-gm')?.checked ?? false;
         networkManager = new NetworkManager();
         setupNetworkHandlers();
         try {
-            const id = await networkManager.startHost(url);
+            const id = await networkManager.startHost(url, { hostAsGm });
             document.getElementById('host-id-display').textContent = id;
-            document.getElementById('network-mode').textContent = 'Hosting';
+            document.getElementById('network-mode').textContent = hostAsGm ? 'Hosting as GM' : 'Hosting';
         } catch (error) {
             alert('Could not start host: ' + error.message);
         }
@@ -233,6 +284,25 @@ function bindNetworkUI() {
             document.getElementById('network-mode').textContent = `Client of ${hostId}`;
         } catch (error) {
             alert('Could not join host: ' + error.message);
+        }
+    });
+
+    const chatForm = document.getElementById('chat-form');
+    const chatInput = document.getElementById('chat-input');
+    chatForm?.addEventListener('submit', event => {
+        event.preventDefault();
+        if (!networkManager?.mode || !chatInput.value.trim()) return;
+        const msg = networkManager.sendChat(chatInput.value.trim());
+        appendChatMessage(msg);
+        chatInput.value = '';
+    });
+
+    document.getElementById('turn-timer-toggle')?.addEventListener('change', event => {
+        const seconds = Number(document.getElementById('turn-timer-seconds')?.value || 60);
+        if (event.target.checked) {
+            networkManager?.startTurnTimer(seconds);
+        } else {
+            networkManager?.stopTurnTimer();
         }
     });
 }
@@ -480,17 +550,39 @@ function updateAudioState() {
     window.__pdcAudio = { muted, volume };
 }
 
-window.addEventListener('DOMContentLoaded', () => {
-    initGame();
-    renderSavedLog();
-    updateUI();
-    bindInput(game, logMessage, updateUI, broadcast, networkManager);
-    bindGameUI();
-    bindNetworkUI();
-    bindAudioControls();
-    startFloatingTextLoop();
-    window.addEventListener('resize', () => {
-        updateMapSizing();
-        centerMapOnActiveMember(game);
+function showErrorBoundary(error) {
+    console.error(error);
+    const boundary = document.getElementById('error-boundary');
+    const message = document.getElementById('error-message');
+    if (boundary) boundary.style.display = 'flex';
+    if (message) message.textContent = error?.message || 'An unexpected error occurred.';
+}
+
+function bindErrorBoundary() {
+    document.getElementById('reset-from-error')?.addEventListener('click', () => {
+        localStorage.removeItem(SAVE_STORAGE_KEY);
+        location.reload();
     });
+    window.addEventListener('error', event => showErrorBoundary(event.error));
+    window.addEventListener('unhandledrejection', event => showErrorBoundary(event.reason));
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    try {
+        initGame();
+        renderSavedLog();
+        updateUI();
+        bindInput(game, logMessage, updateUI, broadcast, networkManager);
+        bindGameUI();
+        bindNetworkUI();
+        bindAudioControls();
+        bindErrorBoundary();
+        startFloatingTextLoop();
+        window.addEventListener('resize', () => {
+            updateMapSizing();
+            centerMapOnActiveMember(game);
+        });
+    } catch (error) {
+        showErrorBoundary(error);
+    }
 });

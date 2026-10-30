@@ -9,9 +9,29 @@ import {
     BASE_MAP_HEIGHT,
     LEGACY_MAP_WIDTH,
     LEGACY_MAP_HEIGHT,
-    MAP_SIZE_MULTIPLIER
+    MAP_SIZE_MULTIPLIER,
+    PLAYER_COLORS,
+    PLAYER_MARKERS
 } from './config.js';
 import { deepClone, positionKey } from './utils.js';
+
+export const MIGRATIONS = {
+    1: snapshot => {
+        const g = snapshot.game;
+        g.items = g.items || {};
+        g.doors = g.doors || {};
+        g.levers = g.levers || {};
+        g.pressurePlates = g.pressurePlates || {};
+        g.shrinesUsed = g.shrinesUsed || {};
+        g.difficulty = g.difficulty || 'normal';
+        g.formation = g.formation || 'cluster';
+        for (const member of g.party) {
+            member.inventory = member.inventory || {};
+            member.statusEffects = member.statusEffects || [];
+        }
+        return snapshot;
+    }
+};
 
 export function createGame() {
     return {
@@ -20,7 +40,7 @@ export function createGame() {
         map: [],
         monsters: {},
         treasures: {},
-        items: {}, // position key -> item object
+        items: {},
         exitPositions: [],
         floorStates: {},
         explored: {},
@@ -35,6 +55,7 @@ export function createGame() {
         difficulty: 'normal',
         shrinesUsed: {},
         formation: 'cluster',
+        formationOffsets: [[0, 0], [1, 0], [0, 1], [-1, 0], [0, -1], [1, 1]],
         network: {
             mode: null,
             peerId: null,
@@ -55,15 +76,19 @@ export function createPartyMember(game, name, classKey) {
         cleric: { race: 'Dwarf', armorClass: 16 }
     }[classKey];
 
+    const base = deepClone(baseStats);
     const newMember = {
         id: game.nextMemberId++,
         color: PLAYER_COLORS[game.party.length % PLAYER_COLORS.length],
         marker: PLAYER_MARKERS[game.party.length % PLAYER_MARKERS.length],
         name,
-        className: baseStats.name,
+        className: base.name,
         classKey,
         race: classSettings.race,
-        ...deepClone(baseStats),
+        hp: base.hp,
+        maxHp: base.maxHp,
+        attack: base.attack,
+        defense: base.defense,
         xp: 0,
         treasure: 0,
         treasureCount: 0,
@@ -128,6 +153,8 @@ export function saveSnapshot(game, gameLog) {
         game: deepClone(game),
         log: deepClone(gameLog)
     };
+    // Strip runtime methods so deepClone is symmetric with loadSnapshot
+    if (snapshot.game.activeMember) delete snapshot.game.activeMember;
     return snapshot;
 }
 
@@ -142,11 +169,25 @@ export function persistSnapshot(game, gameLog) {
     }
 }
 
+export function migrateSnapshot(snapshot) {
+    if (!snapshot || typeof snapshot.version !== 'number') return null;
+    let current = snapshot.version;
+    while (current < SAVE_VERSION) {
+        const migration = MIGRATIONS[current];
+        if (!migration) return null;
+        snapshot = migration(snapshot);
+        current++;
+        snapshot.version = current;
+    }
+    return snapshot;
+}
+
 export function loadSnapshot(snapshot) {
-    if (!validateSnapshot(snapshot)) return null;
-    const game = deepClone(snapshot.game);
+    const migrated = migrateSnapshot(snapshot);
+    if (!migrated || !validateSnapshot(migrated)) return null;
+    const game = deepClone(migrated.game);
     game.activeMember = () => game.party[game.activeMemberIndex] || null;
-    return { game, log: deepClone(snapshot.log) };
+    return { game, log: deepClone(migrated.log) };
 }
 
 export function loadStoredSnapshot() {

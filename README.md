@@ -30,10 +30,25 @@ On mobile devices, the on-screen D-pad and action buttons replace the keyboard s
 ## Multiplayer
 
 1. Start the server on one computer.
-2. One player clicks **Network → Host Game**. A host ID appears.
+2. One player clicks **Network → Host Game**. Check **Host as GM** to host without controlling a party member (spectator/DM mode).
 3. Other players open the same page, enter the host ID, and click **Join**.
 4. Each joining player is automatically assigned a party member to control.
-5. The host is authoritative: client actions are sent to the host, applied, and synced back.
+5. The host is authoritative: client actions are sent to the host, confirmed or rolled back, and synced back.
+6. Reconnecting clients are reassigned to their previous party member when possible.
+7. Use the **Party Chat** panel to send messages; chat is relayed to all connected peers.
+8. The optional **Turn timer** auto-ends a turn when time runs out.
+
+## Save data
+
+Snapshots are stored in `localStorage` under `ascii-dungeon-crawler.snapshot.v2`. Use the pause menu to save or load manually. Save files are automatically migrated from older versions when loaded.
+
+## Technical features
+
+- **Host-authoritative actions**: remote actions are confirmed by the host; invalid actions are rolled back to prevent desync.
+- **Automatic reconnection**: clients try to reconnect to the host and restore their assigned party member.
+- **Runtime error boundary**: uncaught errors show a reset screen instead of freezing the game.
+- **Save migration**: older snapshots are migrated forward when loaded.
+- **Unit tests**: `npm test` runs Node.js tests for combat math and save migration.
 
 ## UI features
 
@@ -80,8 +95,9 @@ On mobile devices, the on-screen D-pad and action buttons replace the keyboard s
     ├── log.js            # Adventure log
     ├── config.js         # Constants
     └── utils.js          # Helpers
+└── tests/                 # Unit tests
+    ├── combat.test.js
+    └── state.test.js
 ```
 
-## Save data
 
-Snapshots are stored in `localStorage` under `ascii-dungeon-crawler.snapshot.v1`. Use the pause menu to save or load manually.

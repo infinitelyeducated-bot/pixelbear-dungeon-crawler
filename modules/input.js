@@ -4,6 +4,7 @@ import { activeMember } from './state.js';
 import { nearestAttackTarget } from './combat.js';
 import { adjacentDeadPartyMembers } from './party.js';
 import { isWalkable } from './map.js';
+import { useInventoryItem } from './actions.js';
 
 export function bindInput(game, logMessage, updateUI, broadcast, networkManager) {
     function localOrSend(action, args, executor) {

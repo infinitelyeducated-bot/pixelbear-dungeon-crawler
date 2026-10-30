@@ -680,6 +680,51 @@
             image-rendering: pixelated;
         }
 
+        .chat-log {
+            height: 100px;
+            overflow-y: auto;
+            background: #0a0a0a;
+            border: 1px solid #4a4a6a;
+            border-radius: 4px;
+            padding: 6px;
+            font-size: 0.75rem;
+            margin-bottom: 6px;
+        }
+
+        .chat-entry {
+            margin-bottom: 4px;
+        }
+
+        .chat-time { color: #888; }
+
+        .chat-sender {
+            color: #ffcc00;
+            font-weight: bold;
+        }
+
+        .chat-form {
+            display: flex;
+            gap: 6px;
+        }
+
+        .chat-form input {
+            flex: 1;
+            padding: 6px;
+            background: #0a0a0a;
+            border: 1px solid #65657b;
+            border-radius: 4px;
+            color: #fff;
+        }
+
+        .chat-form button {
+            padding: 6px 10px;
+            background: #2196f3;
+            border: none;
+            border-radius: 4px;
+            color: #fff;
+            cursor: pointer;
+        }
+
         .turn-order-bar {
             display: flex;
             gap: 8px;
@@ -870,6 +915,45 @@
             }
         }
 
+        .error-boundary {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(10, 10, 10, 0.95);
+            z-index: 1000;
+        }
+
+        .error-box {
+            max-width: 400px;
+            padding: 24px;
+            background: #141421;
+            border: 2px solid #f44336;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .error-box h2 {
+            color: #f44336;
+            margin-bottom: 10px;
+        }
+
+        .error-box p {
+            color: #b9b3a3;
+            margin-bottom: 16px;
+            font-size: 0.85rem;
+        }
+
+        .error-box button {
+            padding: 10px 20px;
+            background: #f44336;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
         .player-legend-markers {
             display: inline-flex;
             flex-wrap: wrap;
@@ -978,6 +1062,14 @@
                     <h2 class="panel-title">ADVENTURE LOG</h2>
                     <div id="game-log" class="log-panel"></div>
                 </section>
+                <section id="chat-section" aria-label="Chat">
+                    <h2 class="panel-title" style="font-size:1rem;">PARTY CHAT</h2>
+                    <div id="chat-log" class="chat-log"></div>
+                    <form id="chat-form" class="chat-form">
+                        <input id="chat-input" type="text" placeholder="Send a message..." maxlength="200" autocomplete="off">
+                        <button type="submit">Send</button>
+                    </form>
+                </section>
                 <section id="minimap-section" aria-label="Minimap">
                     <h2 class="panel-title" style="font-size:1rem;">MINIMAP</h2>
                     <div id="minimap" class="minimap"></div>
@@ -1003,6 +1095,14 @@
             </div>
         </div>
     </div>
+
+    <section id="error-boundary" class="error-boundary" style="display:none;">
+        <div class="error-box">
+            <h2>Something went wrong</h2>
+            <p id="error-message">An unexpected error occurred.</p>
+            <button id="reset-from-error">Reset Game</button>
+        </div>
+    </section>
 
     <section id="character-sheets" class="character-sheets">
         <h2 class="panel-title">PARTY CHARACTER SHEETS</h2>
@@ -1082,6 +1182,9 @@
             Signaling server
                     <input id="signaling-url" type="text" value="ws://localhost:8080" style="padding:6px; background:#0a0a0a; color:#fff; border:1px solid #65657b; border-radius:4px;">
         </label>
+        <label style="display:flex; align-items:center; gap:8px; margin-bottom:10px; font-size:0.8rem;">
+            <input id="host-as-gm" type="checkbox"> Host as GM (spectator, no assigned character)
+        </label>
         <div style="display:grid; gap:10px; margin-bottom:10px;">
             <button id="host-button" type="button" style="background:#4caf50;">Host Game</button>
             <div style="display:flex; gap:8px;">
@@ -1091,6 +1194,13 @@
         </div>
         <p id="host-id-display" style="color:#ffcc00; font-size:0.85rem; min-height:1.2em;"></p>
         <p id="network-mode" style="color:#b9b3a3; font-size:0.75rem; min-height:1.2em;"></p>
+        <div style="margin-top:12px; padding-top:12px; border-top:1px solid #4a4a6a;">
+            <label style="display:flex; align-items:center; gap:8px; font-size:0.8rem; margin-bottom:8px;">
+                <input id="turn-timer-toggle" type="checkbox"> Turn timer
+                <input id="turn-timer-seconds" type="number" min="10" max="300" value="60" style="width:60px; padding:4px; background:#0a0a0a; color:#fff; border:1px solid #65657b; border-radius:4px;">s
+            </label>
+            <div id="turn-timer" style="color:#ffcc00; font-size:0.85rem; min-height:1.2em;"></div>
+        </div>
         <div style="display:flex; justify-content:flex-end; margin-top:12px;">
             <button id="network-cancel" type="button" class="secondary" style="background:transparent; color:#c0d0ce; border:1px solid #42636a; border-radius:6px;">Close</button>
         </div>
