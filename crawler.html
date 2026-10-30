@@ -47,11 +47,9 @@
         
         .dungeon-view {
             display: grid;
-            grid-template-rows: auto 1fr auto;
+            grid-template-rows: auto 1fr;
             background: #0a0a0a;
             border: 3px solid #ffcc00;
-            padding: 5px;
-            width: 100%;
             min-width: 0;
             overflow: hidden;
         }
@@ -122,9 +120,11 @@
         .main-stage {
             display: grid;
             grid-template-columns: minmax(190px, 210px) minmax(0, 1fr) minmax(190px, 210px);
-            align-items: start;
+            grid-template-rows: 1fr;
+            align-items: stretch;
             gap: 8px;
-            min-height: 0;
+            min-height: 360px;
+            max-height: 520px;
         }
 
         .left-column {
@@ -142,7 +142,14 @@
             justify-items: center;
             min-width: 0;
             min-height: 0;
+            max-height: 100%;
+            overflow: hidden;
             position: relative;
+        }
+
+        .map-column .dungeon-map {
+            max-height: 100%;
+            overflow: auto;
         }
 
         .map-column.fullscreen {
@@ -183,12 +190,11 @@
 
         .right-column {
             display: grid;
-            grid-template-columns: 1fr;
+            grid-template-rows: auto auto 1fr;
             gap: 8px;
-            align-content: start;
             min-width: 0;
             min-height: 0;
-            max-height: calc(100vh - 260px);
+            max-height: 100%;
             overflow: hidden;
             position: relative;
         }
@@ -198,16 +204,16 @@
         }
 
         .right-column .game-log-section {
-            order: 10;
-            min-height: 140px;
             display: flex;
             flex-direction: column;
+            min-height: 0;
+            overflow: hidden;
         }
 
         .right-column .game-log-section .log-panel {
             flex: 1 1 auto;
-            min-height: 120px;
-            max-height: 220px;
+            min-height: 80px;
+            max-height: none;
             overflow-y: auto;
         }
 
@@ -269,16 +275,19 @@
         .action-legend {
             display: grid;
             grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 3px;
-            width: 75%;
+            gap: 4px;
+            width: 100%;
             margin: 0 auto;
-            padding: 5px;
+            padding: 8px;
             border: 3px solid #4a4a6a;
             background: #10101b;
         }
 
         .game-log-section {
             min-width: 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
 
         .game-log-section .panel-title {
@@ -288,8 +297,9 @@
         }
 
         .log-panel {
-            min-height: 120px;
-            max-height: 180px;
+            flex: 1 1 auto;
+            min-height: 80px;
+            max-height: none;
             overflow-y: auto;
         }
 
@@ -302,13 +312,13 @@
 
         .action-button {
             position: relative;
-            min-height: 32px;
-            padding: 2px;
+            min-height: 40px;
+            padding: 4px;
             border: 1px solid #b7f5c2;
             border-radius: 6px;
             background: #e5ffe9;
             color: #15241a;
-            font-size: 0.68rem;
+            font-size: 0.72rem;
             line-height: 1.2;
             box-shadow: none;
         }
@@ -596,16 +606,25 @@
         .sheet-party-actions {
             display: flex;
             gap: 8px;
-            margin-top: 10px;
+            margin-top: 0;
         }
 
         .sheet-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 8px;
-            overflow-y: auto;
-            max-height: 100%;
-            padding-right: 4px;
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 10px;
+            justify-content: center;
+            align-items: stretch;
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding-bottom: 6px;
+            max-height: none;
+        }
+
+        .sheet-grid .character-sheet {
+            flex: 1 1 0;
+            min-width: 165px;
+            max-width: 210px;
         }
 
         .character-sheet {
@@ -1235,6 +1254,7 @@
 
             .main-stage {
                 grid-template-columns: 1fr;
+                max-height: none;
             }
 
             .left-column {
@@ -1248,10 +1268,15 @@
             .right-column {
                 order: 3;
                 max-height: none;
+                grid-template-rows: auto auto auto;
             }
 
             .action-legend {
                 width: 100%;
+            }
+
+            .right-column .game-log-section .log-panel {
+                max-height: 200px;
             }
 
             .party-setup {
@@ -1344,12 +1369,13 @@
             <div class="main-stage">
                 <section class="left-column" aria-label="Controls and info">
                     <section id="chat-section" aria-label="Chat">
-                    <h2 class="panel-title" style="font-size:0.85rem;">PARTY CHAT</h2>
-                    <div id="chat-log" class="chat-log"></div>
-                    <form id="chat-form" class="chat-form">
-                        <input id="chat-input" type="text" placeholder="Send a message..." maxlength="200" autocomplete="off">
-                        <button type="submit">Send</button>
-                    </form>
+                        <h2 class="panel-title" style="font-size:0.85rem;">PARTY CHAT</h2>
+                        <div id="chat-log" class="chat-log"></div>
+                        <form id="chat-form" class="chat-form">
+                            <input id="chat-input" type="text" placeholder="Send a message..." maxlength="200" autocomplete="off">
+                            <button type="submit">Send</button>
+                        </form>
+                    </section>
                 </section>
                 <section class="map-column" id="map-column" aria-label="Dungeon map">
                     <button id="fullscreen-toggle" class="fullscreen-toggle" type="button" title="Toggle fullscreen map">⛶</button>

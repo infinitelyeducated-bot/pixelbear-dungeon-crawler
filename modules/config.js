@@ -3,7 +3,7 @@ export const MAP_HEIGHT = 15;
 export const MAX_PARTY_SIZE = 6;
 export const SAVE_STORAGE_KEY = 'ascii-dungeon-crawler.snapshot.v2';
 export const SAVE_SLOTS_KEY = 'ascii-dungeon-crawler.slots.v1';
-export const LAYOUT_STORAGE_KEY = 'ascii-dungeon-crawler.layout.v4';
+export const LAYOUT_STORAGE_KEY = 'ascii-dungeon-crawler.layout.v5';
 export const SAVE_VERSION = 2;
 export const MAX_CHARACTER_LEVEL = 30;
 export const MAX_ENEMY_SCALE_LEVEL = 18;
@@ -117,13 +117,13 @@ export const BIOMES = [
 ];
 
 export const DEFAULT_LAYOUT_SETTINGS = {
-    'dungeon-map': { x: 247.54534912109375, y: 13.436698913574219, width: 337, height: 239 },
-    'map-legend': { x: 779.3282012939453, y: -251.16278076171875, width: 304, height: 248 },
-    'level-title': { x: 224.8062744140625, y: 3.6175918579101562 },
+    'dungeon-map': { x: 0, y: 0 },
+    'map-legend': { x: 0, y: 0 },
+    'level-title': { x: 0, y: 0 },
     'game-help': { x: 0, y: 0 },
-    'game-log': { x: -677.5195007324219, y: -148.3204116821289, width: 406, height: 255 },
+    'game-log': { x: 0, y: 0 },
     'game-brand': { x: 0, y: 0 },
-    'action-legend': { x: -335.40045166015625, y: 291.98960876464844, width: 503, height: 161 },
-    'character-sheets': { x: 4.1343994140625, y: -20.155029296875 },
+    'action-legend': { x: 0, y: 0 },
+    'character-sheets': { x: 0, y: 0 },
     'party-setup': { x: 0, y: 0 }
 };
