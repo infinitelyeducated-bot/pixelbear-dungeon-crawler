@@ -1,13 +1,90 @@
-import { MAX_PARTY_SIZE, CLASSES, MAX_CHARACTER_LEVEL, PLAYER_COLORS, PLAYER_MARKERS } from './config.js';
+import { MAX_PARTY_SIZE, CLASSES, MAX_CHARACTER_LEVEL, PLAYER_COLORS, PLAYER_MARKERS, BIOMES } from './config.js';
 import { activeMember } from './state.js';
 import { adjacentDeadPartyMembers, updateDerivedStats, setMovementAllowance, experienceRequired } from './party.js';
-import { pathDistanceWithin, positionKey } from './utils.js';
+import { positionKey } from './utils.js';
 import { nearestAttackTarget } from './combat.js';
+import { isWalkable, updateExplored, getBiome, getItemAt, isShrineAt } from './map.js';
+import { pathDistanceWithin } from './pathfinding.js';
+import { hasStatusEffect } from './party.js';
+
+const CLASS_AVATARS = {
+    fighter: '⚔',
+    rogue: '🗡',
+    wizard: '🔮',
+    cleric: '✚'
+};
+
+const floatingTexts = [];
+
+export function addFloatingText(x, y, text, color = '#fff') {
+    floatingTexts.push({ x, y, text, color, life: 1.0, maxLife: 1.0 });
+}
+
+export function renderFloatingTexts(game, container) {
+    const viewport = document.getElementById('dungeon-map');
+    if (!viewport || !container) return;
+    container.replaceChildren();
+    const fontSize = parseFloat(viewport.style.fontSize) || 10;
+    for (const ft of floatingTexts) {
+        const cell = document.querySelector(`#dungeon-map-content .map-cell[data-x="${ft.x}"][data-y="${ft.y}"]`);
+        if (!cell) continue;
+        const cellRect = cell.getBoundingClientRect();
+        const viewRect = viewport.getBoundingClientRect();
+        const el = document.createElement('div');
+        el.className = 'floating-text';
+        el.textContent = ft.text;
+        el.style.left = `${cellRect.left - viewRect.left + viewport.scrollLeft + fontSize / 2}px`;
+        el.style.top = `${cellRect.top - viewRect.top + viewport.scrollTop - fontSize}px`;
+        el.style.color = ft.color;
+        el.style.opacity = ft.life / ft.maxLife;
+        container.appendChild(el);
+    }
+}
+
+export function updateFloatingTexts(deltaTime) {
+    for (let i = floatingTexts.length - 1; i >= 0; i--) {
+        floatingTexts[i].life -= deltaTime;
+        floatingTexts[i].y -= deltaTime * 0.5;
+        if (floatingTexts[i].life <= 0) floatingTexts.splice(i, 1);
+    }
+}
+
+export function renderTurnOrder(game, container) {
+    if (!container) return;
+    container.replaceChildren();
+    const active = activeMember(game);
+    const living = game.party.filter(m => m.hp > 0);
+    if (!living.length) return;
+
+    const activeIndex = living.findIndex(m => m.id === active?.id);
+    const ordered = [];
+    for (let i = 0; i < living.length; i++) {
+        const idx = (activeIndex + i) % living.length;
+        ordered.push(living[idx]);
+    }
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'turn-order-bar';
+    for (const member of ordered) {
+        const item = document.createElement('div');
+        item.className = `turn-order-item ${member === active ? 'active' : ''}`;
+        item.style.borderColor = member.color;
+        item.style.color = member.color;
+        item.innerHTML = `<span class="turn-avatar">${CLASS_AVATARS[member.classKey] || '•'}</span><span class="turn-name">${member.name}</span>`;
+        item.title = `${member.name} (${member.className}) ${member === active ? '— ACTIVE' : ''}`;
+        wrapper.appendChild(item);
+    }
+    container.appendChild(wrapper);
+}
 
 export function renderMap(game, mapContent) {
     const fragment = document.createDocumentFragment();
     const active = activeMember(game);
     const membersByPosition = new Map();
+    const sightSet = computeSightSet(game, active);
+    const explored = game.explored?.[active?.dungeonLevel || 1] || [];
+    const reachable = active?.movesRemaining > 0 ? computeReachableTiles(game, active) : new Set();
+
     for (const partyMember of game.party) {
         if (partyMember.dungeonLevel !== active?.dungeonLevel || !partyMember.position) continue;
         const key = positionKey(partyMember.position.x, partyMember.position.y);
@@ -19,17 +96,28 @@ export function renderMap(game, mapContent) {
         const row = document.createElement('div');
         row.className = 'map-row';
         for (let x = 0; x < game.mapWidth; x++) {
-            const membersHere = membersByPosition.get(positionKey(x, y)) || [];
-            const member = membersHere.find(p => p === active) || membersHere[0];
-            const cell = member
-                ? (game.map[y][x] === 'S' ? 'S' : member.marker)
-                : game.map[y][x];
+            const key = positionKey(x, y);
+            const visible = sightSet.has(key);
+            const wasExplored = explored[y]?.[x];
             const cellElement = document.createElement('span');
             cellElement.className = 'map-cell';
-            cellElement.textContent = cell;
             cellElement.dataset.x = String(x);
             cellElement.dataset.y = String(y);
-            styleCell(game, cellElement, x, y, cell, member, membersHere, active);
+            if (reachable.has(key)) cellElement.classList.add('reachable-tile');
+
+            if (!visible && !wasExplored) {
+                cellElement.textContent = ' ';
+                cellElement.style.color = 'transparent';
+            } else {
+                const membersHere = membersByPosition.get(key) || [];
+                const member = membersHere.find(p => p === active) || membersHere[0];
+                const baseCell = game.map[y][x];
+                const cell = member
+                    ? (baseCell === 'S' ? 'S' : member.marker)
+                    : baseCell;
+                cellElement.textContent = cell;
+                styleCell(game, cellElement, x, y, cell, member, membersHere, active, visible);
+            }
             row.appendChild(cellElement);
         }
         fragment.appendChild(row);
@@ -37,7 +125,47 @@ export function renderMap(game, mapContent) {
     mapContent.replaceChildren(fragment);
 }
 
-function styleCell(game, cellElement, x, y, cell, member, membersHere, active) {
+function computeReachableTiles(game, member) {
+    const reachable = new Set();
+    if (!member?.position || member.movesRemaining <= 0) return reachable;
+    const queue = [{ x: member.position.x, y: member.position.y, distance: 0 }];
+    reachable.add(positionKey(member.position.x, member.position.y));
+    for (let i = 0; i < queue.length; i++) {
+        const current = queue[i];
+        if (current.distance >= member.movesRemaining) continue;
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+            const x = current.x + dx;
+            const y = current.y + dy;
+            const key = positionKey(x, y);
+            if (reachable.has(key)) continue;
+            if (!isWalkable(game, x, y)) continue;
+            reachable.add(key);
+            queue.push({ x, y, distance: current.distance + 1 });
+        }
+    }
+    return reachable;
+}
+
+function computeSightSet(game, active) {
+    const set = new Set();
+    if (!active?.position) return set;
+    const radius = 5;
+    for (const member of game.party) {
+        if (member.dungeonLevel !== active.dungeonLevel || member.hp <= 0 || !member.position) continue;
+        for (let y = Math.max(0, member.position.y - radius); y <= Math.min(game.mapHeight - 1, member.position.y + radius); y++) {
+            for (let x = Math.max(0, member.position.x - radius); x <= Math.min(game.mapWidth - 1, member.position.x + radius); x++) {
+                if (Math.abs(x - member.position.x) + Math.abs(y - member.position.y) <= radius) {
+                    set.add(positionKey(x, y));
+                }
+            }
+        }
+    }
+    return set;
+}
+
+function styleCell(game, cellElement, x, y, cell, member, membersHere, active, visible) {
+    const biome = game.biome || getBiome(active?.dungeonLevel || 1);
+    const dim = !visible;
     if (member) {
         cellElement.style.color = member.color;
         cellElement.style.fontWeight = 'bold';
@@ -46,38 +174,101 @@ function styleCell(game, cellElement, x, y, cell, member, membersHere, active) {
         cellElement.setAttribute('aria-label', cellElement.title);
         if (member === active) cellElement.classList.add('active-player');
     } else if (cell === '#') {
-        cellElement.style.color = '#ffffff';
+        cellElement.textContent = biome.wallChar;
+        cellElement.style.color = dim ? '#333' : biome.wallColor;
     } else if (cell === 'S') {
-        cellElement.style.color = '#00e5ff';
+        cellElement.style.color = dim ? '#004d55' : '#00e5ff';
         cellElement.title = 'Starting position';
     } else if (cell === 'M') {
-        cellElement.style.color = '#ef5350';
+        cellElement.style.color = dim ? '#4a1a1a' : '#ef5350';
         const monster = game.monsters[positionKey(x, y)];
         if (monster) {
-            const distance = active?.position
-                ? pathDistanceWithin(game.map, active.position, { x, y }, 3)
-                : Infinity;
-            cellElement.title = `${monster.name} (${monster.hp}/${monster.maxHp} HP)` + (distance <= 3 ? `, ${distance} squares away` : '');
-            if (distance <= 3) {
+            cellElement.title = buildMonsterTooltip(monster);
+            if (visible) {
                 cellElement.classList.add('monster-cell');
                 const indicator = document.createElement('span');
                 indicator.className = 'monster-health-indicator';
-                indicator.innerHTML = `<span class="monster-health-label">${distance} sq ${Math.ceil(monster.hp)}/${monster.maxHp}</span>` +
+                indicator.innerHTML = `<span class="monster-health-label">${Math.ceil(monster.hp)}/${monster.maxHp}</span>` +
                     `<span class="monster-health-track"><span class="monster-health-fill" style="width:${Math.max(0, monster.hp / monster.maxHp * 100)}%"></span></span>`;
                 cellElement.appendChild(indicator);
             }
         }
     } else if (game.treasures[positionKey(x, y)]) {
         const treasure = game.treasures[positionKey(x, y)];
-        cellElement.style.color = treasure.type === 'power' ? '#ffeb3b' : '#ffd740';
+        cellElement.style.color = dim ? '#4a4a1a' : (treasure.type === 'power' ? '#ffeb3b' : '#ffd740');
         cellElement.title = treasure.type === 'power'
             ? 'Power Item (+5 damage, +60 XP)'
             : `${treasure.name}: ${treasure.value} treasure`;
     } else if (cell === '^') {
-        cellElement.style.color = '#ff7043';
+        cellElement.style.color = dim ? '#4a1a0a' : '#ff7043';
+        cellElement.title = 'Trap — step here to trigger';
     } else if (cell === '>') {
-        cellElement.style.color = '#69f0ae';
+        cellElement.style.color = dim ? '#0a3a22' : '#69f0ae';
+        cellElement.title = 'Exit to next level';
+    } else if (cell === '+') {
+        cellElement.style.color = dim ? '#333' : '#d4a373';
+        cellElement.title = 'Closed door (move into it to open)';
+    } else if (cell === '≡') {
+        cellElement.style.color = dim ? '#1a1a1a' : '#555';
+        cellElement.title = 'Chasm — impassable';
+    } else if (cell === '~') {
+        cellElement.style.color = dim ? '#0a1a2a' : '#4a90a4';
+        cellElement.title = 'Water — impassable';
+    } else if (cell === 'Θ') {
+        cellElement.style.color = dim ? '#1a2a1a' : '#69f0ae';
+        cellElement.title = 'Shrine — step here to revive a fallen ally';
+    } else if (cell === '.') {
+        cellElement.textContent = biome.floorChar;
+        cellElement.style.color = dim ? '#222' : biome.floorColor;
+    } else {
+        cellElement.style.color = dim ? '#222' : '#888';
     }
+}
+
+function buildMonsterTooltip(monster) {
+    const hpBar = '█'.repeat(Math.ceil(monster.hp / monster.maxHp * 10)).padEnd(10, '░');
+    return `${monster.name}\n${hpBar} ${Math.ceil(monster.hp)}/${monster.maxHp} HP\nAttack: ${monster.attack}`;
+}
+
+export function renderMinimap(game, container) {
+    if (!container) return;
+    container.replaceChildren();
+    const active = activeMember(game);
+    const explored = game.explored?.[active?.dungeonLevel || 1] || [];
+    const scaleX = Math.max(1, Math.floor(game.mapWidth / 40));
+    const scaleY = Math.max(1, Math.floor(game.mapHeight / 30));
+    const miniWidth = Math.ceil(game.mapWidth / scaleX);
+    const miniHeight = Math.ceil(game.mapHeight / scaleY);
+    const canvas = document.createElement('canvas');
+    canvas.width = miniWidth;
+    canvas.height = miniHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, miniWidth, miniHeight);
+
+    for (let my = 0; my < miniHeight; my++) {
+        for (let mx = 0; mx < miniWidth; mx++) {
+            const gx = mx * scaleX;
+            const gy = my * scaleY;
+            if (!explored[gy]?.[gx]) continue;
+            const cell = game.map[gy]?.[gx];
+            if (cell === '#') ctx.fillStyle = '#555';
+            else if (cell === '>') ctx.fillStyle = '#69f0ae';
+            else if (cell === '^' || cell === '≡') ctx.fillStyle = '#ff7043';
+            else ctx.fillStyle = '#333';
+            ctx.fillRect(mx, my, 1, 1);
+        }
+    }
+
+    for (const partyMember of game.party) {
+        if (partyMember.dungeonLevel !== active?.dungeonLevel || !partyMember.position) continue;
+        const mx = Math.floor(partyMember.position.x / scaleX);
+        const my = Math.floor(partyMember.position.y / scaleY);
+        ctx.fillStyle = partyMember.color;
+        ctx.fillRect(mx, my, 1, 1);
+    }
+
+    container.appendChild(canvas);
 }
 
 export function renderLegend(game, container) {
@@ -124,7 +315,7 @@ function canMove(game, member, direction) {
     if (!member || member.hp <= 0 || member.movesRemaining <= 0 || game.gameOver) return false;
     const offsets = { up: { x: 0, y: -1 }, left: { x: -1, y: 0 }, down: { x: 0, y: 1 }, right: { x: 1, y: 0 } };
     const offset = offsets[direction];
-    return game.map[member.position.y + offset.y]?.[member.position.x + offset.x] !== '#';
+    return isWalkable(game, member.position.x + offset.x, member.position.y + offset.y);
 }
 
 export function renderCharacterSheets(game, container) {
@@ -144,10 +335,21 @@ function buildCharacterSheet(game, member, index) {
 
     const header = document.createElement('div');
     header.className = 'sheet-heading-row';
+
+    const avatar = document.createElement('span');
+    avatar.className = 'sheet-avatar';
+    avatar.textContent = CLASS_AVATARS[member.classKey] || '•';
+    avatar.style.color = member.color;
+
     const heading = document.createElement('h3');
-    heading.textContent = `${member.marker} ${index + 1}. ${member.name}${member.hp <= 0 ? ' (down)' : ''}${member === activeMember(game) ? ' — ACTIVE' : ''}`;
+    heading.innerHTML = `${member.marker} ${index + 1}. ${member.name}${member.hp <= 0 ? ' <span class="down-tag">(down)</span>' : ''}${member === activeMember(game) ? ' — ACTIVE' : ''}`;
     heading.style.color = member.color;
-    header.appendChild(heading);
+
+    const title = document.createElement('div');
+    title.className = 'sheet-title';
+    title.appendChild(avatar);
+    title.appendChild(heading);
+    header.appendChild(title);
 
     const classPoints = document.createElement('div');
     classPoints.className = 'sheet-class-points';
@@ -171,6 +373,30 @@ function buildCharacterSheet(game, member, index) {
     remainingPoints.title = 'Unspent attribution points';
     classPoints.append(classLabel, remainingPoints);
     header.appendChild(classPoints);
+
+    const hpBar = document.createElement('div');
+    hpBar.className = 'hp-bar';
+    const hpFill = document.createElement('div');
+    hpFill.className = 'hp-fill';
+    const hpPercent = Math.max(0, Math.min(100, (member.hp / member.maxHp) * 100));
+    hpFill.style.width = `${hpPercent}%`;
+    hpFill.style.background = hpPercent > 60 ? '#4caf50' : hpPercent > 30 ? '#ffbd3d' : '#f44336';
+    hpBar.appendChild(hpFill);
+    const hpLabel = document.createElement('span');
+    hpLabel.className = 'hp-label';
+    hpLabel.textContent = `${member.hp}/${member.maxHp} HP`;
+    hpBar.appendChild(hpLabel);
+
+    const statusList = document.createElement('div');
+    statusList.className = 'status-list';
+    if (member.statusEffects?.length) {
+        for (const effect of member.statusEffects) {
+            const badge = document.createElement('span');
+            badge.className = `status-badge status-${effect.type}`;
+            badge.textContent = `${effect.type.toUpperCase()} ${effect.duration}`;
+            statusList.appendChild(badge);
+        }
+    }
 
     const fields = document.createElement('div');
     fields.className = 'sheet-fields';
@@ -242,8 +468,13 @@ function buildCharacterSheet(game, member, index) {
     summary.className = 'sheet-status';
     summary.textContent = `${member.pendingAttributePoints} point(s) available. Left-click a stat to spend one; right-click to reclaim one. Unused points are lost when moving.`;
 
-    card.append(header, fields, attributes, summary);
+    card.append(header, hpBar, statusList, fields, attributes, summary);
     return card;
+}
+
+function buildStatusTooltip(member) {
+    if (!member.statusEffects?.length) return 'No status effects';
+    return member.statusEffects.map(e => `${e.type} (${e.duration} turns)`).join(', ');
 }
 
 export function updateMapSizing() {
@@ -265,6 +496,11 @@ export function centerMapOnActiveMember(game) {
     if (!cell || !viewport) return;
     const viewportRect = viewport.getBoundingClientRect();
     const cellRect = cell.getBoundingClientRect();
-    viewport.scrollLeft += cellRect.left + cellRect.width / 2 - (viewportRect.left + viewport.clientWidth / 2);
-    viewport.scrollTop += cellRect.top + cellRect.height / 2 - (viewportRect.top + viewport.clientHeight / 2);
+    const targetLeft = cellRect.left + cellRect.width / 2 - (viewportRect.left + viewport.clientWidth / 2);
+    const targetTop = cellRect.top + cellRect.height / 2 - (viewportRect.top + viewport.clientHeight / 2);
+    viewport.scrollTo({
+        left: viewport.scrollLeft + targetLeft,
+        top: viewport.scrollTop + targetTop,
+        behavior: 'smooth'
+    });
 }

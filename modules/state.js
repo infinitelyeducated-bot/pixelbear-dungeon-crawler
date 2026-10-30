@@ -20,15 +20,23 @@ export function createGame() {
         map: [],
         monsters: {},
         treasures: {},
+        items: {}, // position key -> item object
         exitPositions: [],
         floorStates: {},
+        explored: {},
+        doors: {},
+        levers: {},
+        pressurePlates: {},
         gameOver: false,
         turn: 0,
         nextMemberId: 1,
         hasStarted: false,
         startingPointsPerPlayer: null,
+        difficulty: 'normal',
+        shrinesUsed: {},
+        formation: 'cluster',
         network: {
-            mode: null, // 'host' | 'client' | null
+            mode: null,
             peerId: null,
             hostId: null,
             connections: [],
@@ -77,7 +85,9 @@ export function createPartyMember(game, name, classKey) {
         guardActive: false,
         movesPerTurn: 0,
         movesRemaining: 0,
-        allocatedFields: []
+        allocatedFields: [],
+        inventory: {},
+        statusEffects: []
     };
     game.party.push(newMember);
     return newMember;

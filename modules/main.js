@@ -1,13 +1,13 @@
 import { createGame, createPartyMember, activeMember, persistSnapshot, loadStoredSnapshot, saveSnapshot } from './state.js';
-import { generateMap, storeActiveFloor, loadMemberFloor } from './map.js';
-import { applyCharacterClass, updateDerivedStats, setMovementAllowance } from './party.js';
+import { generateMap, storeActiveFloor, loadMemberFloor, setPartyFormation } from './map.js';
+import { applyCharacterClass, updateDerivedStats, setMovementAllowance, getDifficultySettings } from './party.js';
 import { createLogger } from './log.js';
 import { LayoutManager } from './layout.js';
 import { NetworkManager } from './network.js';
-import { renderMap, renderLegend, updateActionButtons, renderCharacterSheets, updateMapSizing, centerMapOnActiveMember } from './ui.js';
+import { renderMap, renderLegend, updateActionButtons, renderCharacterSheets, updateMapSizing, centerMapOnActiveMember, renderMinimap, renderTurnOrder, renderFloatingTexts, updateFloatingTexts } from './ui.js';
 import { bindInput } from './input.js';
 import { handleRemoteAction } from './network-actions.js';
-import { MAX_PARTY_SIZE, CLASSES } from './config.js';
+import { MAX_PARTY_SIZE, CLASSES, DIFFICULTIES, ITEMS } from './config.js';
 
 let game = createGame();
 let gameLog = [];
@@ -28,6 +28,8 @@ function initGame() {
 
 function startNewGame() {
     game = createGame();
+    setPartyFormation(game, 'cluster');
+    game.difficulty = 'normal';
     gameLog = [];
     logMessage = createLogger(gameLog, appendLogRecord);
     createPartyMember(game, 'Aldric', 'fighter');
@@ -44,13 +46,78 @@ function startNewGame() {
 
 export function updateUI() {
     renderMap(game, document.getElementById('dungeon-map-content'));
+    renderMinimap(game, document.getElementById('minimap'));
     renderLegend(game, document.getElementById('player-legend-markers'));
-    document.getElementById('level-title').textContent = `DUNGEON LEVEL ${activeMember(game)?.dungeonLevel || 1}`;
+    renderTurnOrder(game, document.getElementById('turn-order-bar'));
+    renderFloatingTexts(game, document.getElementById('floating-text-layer'));
+    const biome = game.biome;
+    const levelTitle = document.getElementById('level-title');
+    levelTitle.textContent = `${biome ? biome.name + ' — ' : ''}DUNGEON LEVEL ${activeMember(game)?.dungeonLevel || 1}`;
     updateActionButtons(game);
+    updateMobileButtons(game);
+    renderInventoryPanel(game);
     renderCharacterSheets(game, document.getElementById('character-sheet-list'));
     layoutManager.refresh();
     updateMapSizing();
     centerMapOnActiveMember(game);
+}
+
+function renderInventoryPanel(game) {
+    const panel = document.getElementById('inventory-panel');
+    if (!panel) return;
+    panel.replaceChildren();
+    const member = activeMember(game);
+    if (!member || !Object.keys(member.inventory || {}).length) {
+        panel.textContent = 'No items.';
+        return;
+    }
+    for (const [key, count] of Object.entries(member.inventory)) {
+        const item = ITEMS[key];
+        if (!item) continue;
+        const btn = document.createElement('button');
+        btn.className = 'inventory-item';
+        btn.textContent = `${item.icon} ${item.name} x${count}`;
+        btn.title = item.description;
+        btn.disabled = member.hp <= 0 || game.gameOver;
+        btn.addEventListener('click', () => {
+            import('./actions.js').then(m => {
+                m.useInventoryItem(game, key, logMessage, updateUI, broadcast);
+            });
+        });
+        panel.appendChild(btn);
+    }
+}
+
+function updateMobileButtons(game) {
+    const member = activeMember(game);
+    const canAct = Boolean(member && member.hp > 0 && !game.gameOver);
+    const directions = {
+        'mobile-up': 'up', 'mobile-down': 'down', 'mobile-left': 'left', 'mobile-right': 'right'
+    };
+    for (const [id, dir] of Object.entries(directions)) {
+        const btn = document.getElementById(id);
+        if (btn) btn.disabled = !(canAct && canMove(game, member, dir));
+    }
+    const attackBtn = document.getElementById('mobile-action');
+    if (attackBtn) attackBtn.disabled = !(canAct && Boolean(nearestAttackTarget(game, member)));
+    const restBtn = document.getElementById('mobile-rest');
+    if (restBtn) restBtn.disabled = !(canAct && member.hp < member.maxHp);
+    const guardBtn = document.getElementById('mobile-guard');
+    if (guardBtn) {
+        const canRevive = canAct && member.classKey === 'cleric' &&
+            member.movesRemaining >= 3 && adjacentDeadPartyMembers(game, member).length > 0;
+        guardBtn.disabled = !(canAct && !member.guardActive &&
+            (canRevive || (member.hp === member.maxHp && member.movesRemaining >= 2)));
+    }
+    const endBtn = document.getElementById('mobile-end');
+    if (endBtn) endBtn.disabled = !canAct;
+}
+
+function canMove(game, member, direction) {
+    if (!member || member.hp <= 0 || member.movesRemaining <= 0 || game.gameOver) return false;
+    const offsets = { up: { x: 0, y: -1 }, left: { x: -1, y: 0 }, down: { x: 0, y: 1 }, right: { x: 1, y: 0 } };
+    const offset = offsets[direction];
+    return isWalkable(game, member.position.x + offset.x, member.position.y + offset.y);
 }
 
 function appendLogRecord(record) {
@@ -187,6 +254,14 @@ function bindGameUI() {
     document.getElementById('gm-starting-points')?.addEventListener('change', event => {
         setStartingPoints(event.target);
     });
+    document.getElementById('difficulty-select')?.addEventListener('change', event => {
+        import('./actions.js').then(m => m.setGameDifficulty(game, event.target.value, logMessage));
+        updateUI();
+    });
+    document.getElementById('formation-select')?.addEventListener('change', event => {
+        import('./actions.js').then(m => m.setFormation(game, event.target.value, logMessage));
+        updateUI();
+    });
     document.getElementById('resume-button')?.addEventListener('click', () => {
         document.getElementById('escape-menu').close();
     });
@@ -208,6 +283,15 @@ function bindGameUI() {
             renderSavedLog();
             updateUI();
             document.getElementById('escape-menu').close();
+        }
+    });
+    document.getElementById('descend-button')?.addEventListener('click', () => {
+        const member = activeMember(game);
+        if (member) {
+            import('./actions.js').then(m => {
+                m.descendFloor(game, member, logMessage);
+                updateUI();
+            });
         }
     });
     document.getElementById('reset-game-button')?.addEventListener('click', startNewGame);
@@ -348,6 +432,54 @@ function refreshPartySetupMap() {
 import { movementAllowance } from './party.js';
 import { removePartyMember } from './party.js';
 
+function startFloatingTextLoop() {
+    let last = performance.now();
+    function frame(now) {
+        const delta = (now - last) / 1000;
+        last = now;
+        updateFloatingTexts(delta);
+        renderFloatingTexts(game, document.getElementById('floating-text-layer'));
+        requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+}
+
+function bindAudioControls() {
+    const muteToggle = document.getElementById('mute-toggle');
+    const volumeSlider = document.getElementById('volume-slider');
+    const volumeValue = document.getElementById('volume-value');
+    if (!muteToggle || !volumeSlider) return;
+
+    const stored = localStorage.getItem('pdc-audio');
+    if (stored) {
+        try {
+            const parsed = JSON.parse(stored);
+            muteToggle.checked = parsed.muted ?? false;
+            volumeSlider.value = parsed.volume ?? 0.5;
+        } catch { /* ignore */ }
+    }
+
+    const save = () => localStorage.setItem('pdc-audio', JSON.stringify({
+        muted: muteToggle.checked,
+        volume: Number(volumeSlider.value)
+    }));
+
+    muteToggle.addEventListener('change', () => { save(); updateAudioState(); });
+    volumeSlider.addEventListener('input', () => {
+        volumeValue.textContent = `${Math.round(volumeSlider.value * 100)}%`;
+        save();
+        updateAudioState();
+    });
+    volumeValue.textContent = `${Math.round(volumeSlider.value * 100)}%`;
+    updateAudioState();
+}
+
+function updateAudioState() {
+    const muted = document.getElementById('mute-toggle')?.checked ?? false;
+    const volume = Number(document.getElementById('volume-slider')?.value ?? 0.5);
+    window.__pdcAudio = { muted, volume };
+}
+
 window.addEventListener('DOMContentLoaded', () => {
     initGame();
     renderSavedLog();
@@ -355,6 +487,8 @@ window.addEventListener('DOMContentLoaded', () => {
     bindInput(game, logMessage, updateUI, broadcast, networkManager);
     bindGameUI();
     bindNetworkUI();
+    bindAudioControls();
+    startFloatingTextLoop();
     window.addEventListener('resize', () => {
         updateMapSizing();
         centerMapOnActiveMember(game);

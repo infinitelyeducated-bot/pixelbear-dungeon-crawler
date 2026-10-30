@@ -1,4 +1,4 @@
-import { CLASSES, CLASS_SETTINGS, MAX_PARTY_SIZE, MAX_CHARACTER_LEVEL } from './config.js';
+import { CLASSES, CLASS_SETTINGS, MAX_PARTY_SIZE, MAX_CHARACTER_LEVEL, DIFFICULTIES } from './config.js';
 import { activeMember } from './state.js';
 
 export function movementAllowance(member) {
@@ -6,7 +6,12 @@ export function movementAllowance(member) {
 }
 
 export function setMovementAllowance(member) {
-    member.movesPerTurn = movementAllowance(member);
+    let base = movementAllowance(member);
+    const haste = member.statusEffects?.find(e => e.type === 'haste');
+    const slow = member.statusEffects?.find(e => e.type === 'slow');
+    if (haste) base += 2;
+    if (slow) base = Math.max(1, base - 2);
+    member.movesPerTurn = base;
     member.movesRemaining = member.movesPerTurn;
 }
 
@@ -17,6 +22,10 @@ export function updateDerivedStats(member) {
         (member.classKey === 'fighter' ? Math.floor(Math.max(0, member.strength - 10) / 5) : 0) +
         (member.powerItems || 0) * 5;
     member.defense = member.classBase.defense + levelBonus + Math.floor(Math.max(0, member.dexterity - 10) / 4);
+    const bless = member.statusEffects?.find(e => e.type === 'bless');
+    const poison = member.statusEffects?.find(e => e.type === 'poison');
+    if (bless) member.attack += bless.magnitude || 2;
+    if (poison) member.attack = Math.max(1, member.attack - 1);
 }
 
 export function applyCharacterClass(member, classKey, startingPoints = 0) {
@@ -39,9 +48,56 @@ export function applyCharacterClass(member, classKey, startingPoints = 0) {
     member.wisdom = 10;
     member.pendingAttributePoints = startingPoints;
     member.clericHealedLevels = [];
+    member.inventory = {};
+    member.statusEffects = [];
     updateDerivedStats(member);
     member.hp = member.maxHp;
     setMovementAllowance(member);
+}
+
+export function addItemToInventory(member, itemKey, count = 1) {
+    member.inventory[itemKey] = (member.inventory[itemKey] || 0) + count;
+}
+
+export function removeItemFromInventory(member, itemKey, count = 1) {
+    if (!member.inventory[itemKey]) return false;
+    member.inventory[itemKey] -= count;
+    if (member.inventory[itemKey] <= 0) delete member.inventory[itemKey];
+    return true;
+}
+
+export function addStatusEffect(member, type, duration, magnitude = 0) {
+    const existing = member.statusEffects.find(e => e.type === type);
+    if (existing) {
+        existing.duration = Math.max(existing.duration, duration);
+        existing.magnitude = Math.max(existing.magnitude, magnitude);
+    } else {
+        member.statusEffects.push({ type, duration, magnitude });
+    }
+}
+
+export function tickStatusEffects(member) {
+    for (let i = member.statusEffects.length - 1; i >= 0; i--) {
+        const effect = member.statusEffects[i];
+        if (effect.type === 'poison') {
+            const damage = effect.magnitude || 2;
+            member.hp = Math.max(0, member.hp - damage);
+        }
+        effect.duration--;
+        if (effect.duration <= 0) member.statusEffects.splice(i, 1);
+    }
+}
+
+export function clearStatusEffect(member, type) {
+    member.statusEffects = member.statusEffects.filter(e => e.type !== type);
+}
+
+export function hasStatusEffect(member, type) {
+    return member.statusEffects.some(e => e.type === type);
+}
+
+export function getDifficultySettings(game) {
+    return DIFFICULTIES[game.difficulty] || DIFFICULTIES.normal;
 }
 
 export function experienceRequired(member, partySize) {

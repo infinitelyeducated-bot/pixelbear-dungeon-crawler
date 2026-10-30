@@ -4,10 +4,13 @@ import {
     setMovementAllowance,
     updateDerivedStats,
     experienceRequired,
-    gainExperience
+    gainExperience,
+    addItemToInventory,
+    tickStatusEffects,
+    hasStatusEffect
 } from './party.js';
-import { storeActiveFloor, loadMemberFloor } from './map.js';
-import { handleTrap, handleTreasure, attackMonster, enemyTurn, checkPartyDefeat, nearestAttackTarget } from './combat.js';
+import { storeActiveFloor, loadMemberFloor, updateExplored, isWalkable, toggleDoor, getBiome, getItemAt, removeItemAt, isShrineAt, setPartyFormation } from './map.js';
+import { handleTrap, handleTreasure, attackMonster, enemyTurn, checkPartyDefeat, nearestAttackTarget, useItem, reviveAtShrine } from './combat.js';
 
 export function move(game, direction, logMessage, updateUI, broadcast) {
     if (game.gameOver) return;
@@ -23,8 +26,23 @@ export function move(game, direction, logMessage, updateUI, broadcast) {
     const newX = member.position.x + dx;
     const newY = member.position.y + dy;
 
-    if (game.map[newY]?.[newX] === '#') {
-        logMessage('A solid wall blocks the way.', member);
+    if (!isWalkable(game, newX, newY)) {
+        const targetCell = game.map[newY]?.[newX];
+        if (targetCell === '+') {
+            toggleDoor(game, newX, newY, logMessage);
+            updateUI();
+            if (broadcast) broadcast({ type: 'sync', game });
+            return;
+        }
+        if (targetCell === '≡') {
+            logMessage('A chasm blocks the way.', member);
+            return;
+        }
+        if (targetCell === '~') {
+            logMessage('Water is too deep to wade through.', member);
+            return;
+        }
+        logMessage('A wall blocks the way.', member);
         return;
     }
 
@@ -40,8 +58,9 @@ export function move(game, direction, logMessage, updateUI, broadcast) {
             if (game.treasures[`${newX},${newY}`]) handleTreasure(game, newX, newY, logMessage);
         }
         if (member.hp <= 0 || member.movesRemaining <= 0) finishTurn(game, logMessage, updateUI, broadcast);
+        updateExplored(game, member);
         updateUI();
-        if (broadcast) broadcast({ type: 'state', game });
+        if (broadcast) broadcast({ type: 'sync', game });
         return;
     }
 
@@ -52,16 +71,53 @@ export function move(game, direction, logMessage, updateUI, broadcast) {
 
     if (targetCell === '^') handleTrap(game, newX, newY, logMessage);
     if (game.treasures[`${newX},${newY}`]) handleTreasure(game, newX, newY, logMessage);
+    const item = getItemAt(game, newX, newY);
+    if (item) {
+        addItemToInventory(member, item.key);
+        logMessage(`${member.name} picks up ${item.name}.`, member);
+        removeItemAt(game, newX, newY);
+    }
+    if (isShrineAt(game, newX, newY)) {
+        reviveAtShrine(game, member, logMessage);
+    }
     if (targetCell === '>') {
-        nextLevel(game, member, logMessage);
+        offerDescend(game, member, logMessage);
         updateUI();
-        if (broadcast) broadcast({ type: 'state', game });
+        if (broadcast) broadcast({ type: 'sync', game });
         return;
     }
 
+    updateExplored(game, member);
     if (member.hp <= 0 || member.movesRemaining <= 0) finishTurn(game, logMessage, updateUI, broadcast);
     updateUI();
-    if (broadcast) broadcast({ type: 'state', game });
+    if (broadcast) broadcast({ type: 'sync', game });
+}
+
+export function useInventoryItem(game, itemKey, logMessage, updateUI, broadcast) {
+    const member = activeMember(game);
+    if (!member || member.hp <= 0 || game.gameOver) return;
+    if (useItem(game, itemKey, member, logMessage)) {
+        updateUI();
+        if (broadcast) broadcast({ type: 'sync', game });
+    }
+}
+
+export function setGameDifficulty(game, difficulty, logMessage) {
+    if (game.hasStarted) {
+        logMessage('Difficulty can only be changed before the first move.', activeMember(game));
+        return;
+    }
+    game.difficulty = difficulty;
+    logMessage(`Difficulty set to ${difficulty}.`, null, 'Game Master');
+}
+
+export function setFormation(game, formation, logMessage) {
+    if (game.hasStarted) {
+        logMessage('Formation can only be changed before the first move.', activeMember(game));
+        return;
+    }
+    setPartyFormation(game, formation);
+    logMessage(`Party formation set to ${formation}.`, null, 'Game Master');
 }
 
 export function attack(game, logMessage, updateUI, broadcast) {
@@ -75,7 +131,7 @@ export function attack(game, logMessage, updateUI, broadcast) {
     attackMonster(game, member, target.x, target.y, logMessage);
     if (!game.gameOver) finishTurn(game, logMessage, updateUI, broadcast);
     updateUI();
-    if (broadcast) broadcast({ type: 'state', game });
+    if (broadcast) broadcast({ type: 'sync', game });
 }
 
 export function standGuard(game, logMessage, updateUI, broadcast) {
@@ -92,7 +148,7 @@ export function standGuard(game, logMessage, updateUI, broadcast) {
         logMessage(`uses a demanding Guard to bring ${revived.name} back from the dead with ${revived.hp} HP.`, member);
         finishTurn(game, logMessage, updateUI, broadcast);
         updateUI();
-        if (broadcast) broadcast({ type: 'state', game });
+        if (broadcast) broadcast({ type: 'sync', game });
         return;
     }
     if (member.hp !== member.maxHp || member.movesRemaining < 2) return;
@@ -100,12 +156,16 @@ export function standGuard(game, logMessage, updateUI, broadcast) {
     member.movesRemaining--;
     logMessage('stands guard and can react to a monster within 2 spaces at turn end.', member);
     updateUI();
-    if (broadcast) broadcast({ type: 'state', game });
+    if (broadcast) broadcast({ type: 'sync', game });
 }
 
 export function rest(game, logMessage, updateUI, broadcast) {
     const member = activeMember(game);
     if (!member || member.hp <= 0) return;
+    if (hasStatusEffect(member, 'stun')) {
+        logMessage(`${member.name} is stunned and cannot rest.`, member);
+        return;
+    }
     if (member.hp < member.maxHp) {
         const oldHp = member.hp;
         const healAmount = Math.max(1, Math.floor(member.maxHp * 0.3));
@@ -116,13 +176,14 @@ export function rest(game, logMessage, updateUI, broadcast) {
     }
     finishTurn(game, logMessage, updateUI, broadcast);
     updateUI();
-    if (broadcast) broadcast({ type: 'state', game });
+    if (broadcast) broadcast({ type: 'sync', game });
 }
 
 export function finishTurn(game, logMessage, updateUI, broadcast) {
     const member = activeMember(game);
     if (!member) return;
     logMessage('ends their turn.', member);
+    tickStatusEffects(member);
     enemyTurn(game, member, logMessage);
     member.movesRemaining = 0;
     if (game.gameOver) {
@@ -138,14 +199,15 @@ export function finishTurn(game, logMessage, updateUI, broadcast) {
         game.activeMemberIndex = nextIndex;
         loadMemberFloor(game, nextMember);
         setMovementAllowance(nextMember);
+        updateExplored(game, nextMember);
         logMessage(`begins their turn with ${nextMember.movesPerTurn} movement spaces.`, nextMember);
         updateUI();
-        if (broadcast) broadcast({ type: 'state', game });
+        if (broadcast) broadcast({ type: 'sync', game });
         return;
     }
     checkPartyDefeat(game, logMessage);
     updateUI();
-    if (broadcast) broadcast({ type: 'state', game });
+    if (broadcast) broadcast({ type: 'sync', game });
 }
 
 function beginMovement(game, member, logMessage) {
@@ -166,16 +228,36 @@ function beginMovement(game, member, logMessage) {
     }
 }
 
-function nextLevel(game, member, logMessage) {
+function offerDescend(game, member, logMessage) {
+    const aliveOnFloor = game.party.filter(p =>
+        p.dungeonLevel === member.dungeonLevel && p.hp > 0
+    );
+    const atExit = aliveOnFloor.filter(p =>
+        game.exitPositions.some(e => e.x === p.position?.x && e.y === p.position?.y)
+    );
+    if (aliveOnFloor.length === 1 || atExit.length === aliveOnFloor.length) {
+        descendFloor(game, member, logMessage);
+    } else {
+        logMessage('reaches the exit. Waiting for the rest of the party before descending.', member);
+    }
+}
+
+export function descendFloor(game, member, logMessage) {
     storeActiveFloor(game, member);
+    const oldLevel = member.dungeonLevel;
     member.dungeonLevel++;
     game.turn = member.dungeonLevel - 1;
+    for (const partyMember of game.party) {
+        if (partyMember.hp <= 0) continue;
+        partyMember.dungeonLevel = member.dungeonLevel;
+        partyMember.floorPositions[partyMember.dungeonLevel] = null;
+    }
     loadMemberFloor(game, member);
-    logMessage(`descends alone to dungeon level ${member.dungeonLevel}.`, member);
+    logMessage(`the party descends to dungeon level ${member.dungeonLevel}.`, null, 'Dungeon');
 }
 
 function movementExperience() {
     return 3;
 }
 
-
+export { useItem };
