@@ -1046,33 +1046,42 @@
 
         .mobile-controls {
             display: none;
+            position: fixed;
+            bottom: 12px;
+            left: 12px;
+            right: 12px;
+            z-index: 50;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-end;
             gap: 12px;
-            padding: 10px 0 0;
+            padding: 10px;
+            background: rgba(10, 10, 15, 0.92);
+            border: 2px solid #4a4a6a;
+            border-radius: 12px;
+            backdrop-filter: blur(4px);
         }
 
         .dpad {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 4px;
+            gap: 6px;
         }
 
         .dpad-middle {
             display: flex;
-            gap: 4px;
+            gap: 6px;
             align-items: center;
         }
 
         .mobile-controls button {
-            width: 48px;
-            height: 48px;
-            font-size: 1.2rem;
+            width: 64px;
+            height: 64px;
+            font-size: 1.5rem;
             padding: 0;
             background: #2a2a3a;
             border: 1px solid #4a4a6a;
-            border-radius: 8px;
+            border-radius: 10px;
             color: #e0d6b8;
         }
 
@@ -1080,7 +1089,7 @@
 
         .mobile-actions {
             display: flex;
-            gap: 8px;
+            gap: 10px;
         }
 
         @media (max-width: 768px) {
@@ -1094,6 +1103,10 @@
 
             .dungeon-content {
                 grid-template-columns: 1fr;
+            }
+
+            .game-container {
+                padding-bottom: 110px;
             }
         }
 

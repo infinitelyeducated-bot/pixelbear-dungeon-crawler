@@ -3,6 +3,7 @@ import { positionKey } from './utils.js';
 import { pathDistanceWithin } from './pathfinding.js';
 import { addFloatingText } from './ui.js';
 import { activeMember } from './state.js';
+import { playSound } from './audio.js';
 import {
     adjacentPartyMembers,
     adjacentDeadPartyMembers,
@@ -101,6 +102,7 @@ export function attackMonster(game, member, x, y, logMessage) {
     const teamDamageBonus = Math.min(6, nearbyAllies.length * 2);
     const { damage, critical, criticalRoll } = rollAttackDamage(member, distance, teamDamageBonus);
     addFloatingText(x, y, `-${damage}`, '#ef5350');
+    playSound('hit');
     monster.hp = Math.max(0, monster.hp - damage);
     logMessage(
         `${member.name} ${critical ? 'critically hits' : 'hits'} ${monster.name} for ${damage} damage` +
@@ -130,6 +132,7 @@ export function attackMonster(game, member, x, y, logMessage) {
         Math.floor(Math.random() * 2));
     member.hp = Math.max(0, member.hp - retaliation);
     addFloatingText(member.position.x, member.position.y, `-${retaliation}`, '#ff7043');
+    playSound('hit');
     logMessage(`${member.name} is struck by ${monster.name} for ${retaliation} damage.`, member);
     applyMonsterOnHitEffect(monster, member, logMessage);
     if (member.hp === 0) {
@@ -157,7 +160,7 @@ function dropItemAt(game, x, y, logMessage) {
     logMessage(`A ${ITEMS[key].name} appears on the floor.`, null, 'Dungeon');
 }
 
-export function enemyTurn(game, member, logMessage) {
+export async function enemyTurn(game, member, logMessage, updateUI, broadcast) {
     if (member.hp <= 0) return;
     if (hasStatusEffect(member, 'stun')) {
         logMessage(`${member.name} is stunned and cannot guard or act.`, member);
@@ -171,8 +174,8 @@ export function enemyTurn(game, member, logMessage) {
         return;
     }
 
-    // Monster AI activation
-    activateMonsterAI(game, member, logMessage);
+    // Monster AI activation (one at a time with small delay)
+    await activateMonsterAI(game, member, logMessage, updateUI, broadcast);
 
     tickStatusEffects(member);
     if (Math.random() >= 0.3) return;
@@ -196,6 +199,7 @@ export function enemyTurn(game, member, logMessage) {
         attacker.attack - member.defense - guardedByParty + Math.floor(Math.random() * 2));
     member.hp = Math.max(0, member.hp - damage);
     addFloatingText(member.position.x, member.position.y, `-${damage}`, '#ff7043');
+    playSound('hit');
     logMessage(`${member.name} is attacked by a nearby ${attacker.name} for ${damage} damage.`, member);
     applyMonsterOnHitEffect(attacker, member, logMessage);
     if (member.hp === 0) {
@@ -204,7 +208,11 @@ export function enemyTurn(game, member, logMessage) {
     }
 }
 
-function activateMonsterAI(game, member, logMessage) {
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function activateMonsterAI(game, member, logMessage, updateUI, broadcast) {
     const monsterPositions = [];
     for (let y = 1; y < game.mapHeight - 1; y++) {
         for (let x = 1; x < game.mapWidth - 1; x++) {
@@ -218,20 +226,25 @@ function activateMonsterAI(game, member, logMessage) {
         const m = pos.monster;
         const dist = Math.abs(pos.x - member.position.x) + Math.abs(pos.y - member.position.y);
         if (dist > 8) continue;
+        let acted = false;
         switch (m.ai) {
             case 'ranged':
                 if (dist <= 4 && dist > 1) {
                     const damage = Math.max(1, m.attack - member.defense + Math.floor(Math.random() * 2));
                     member.hp = Math.max(0, member.hp - damage);
                     addFloatingText(member.position.x, member.position.y, `-${damage}`, '#ff7043');
+                    addFloatingText(pos.x, pos.y, 'RANGED!', '#ff9100');
+                    playSound('hit');
                     logMessage(`${m.name} shoots ${member.name} for ${damage} damage.`, null, m.name);
                     applyMonsterOnHitEffect(m, member, logMessage);
                     if (member.hp === 0) downMember(game, member, logMessage);
+                    acted = true;
                 }
                 break;
             case 'fleeing':
                 if (dist <= 2) {
                     fleeMonster(game, pos, member);
+                    acted = true;
                 }
                 break;
             case 'pack':
@@ -241,20 +254,28 @@ function activateMonsterAI(game, member, logMessage) {
                     ).length;
                     if (packNearby >= 1 && Math.random() < 0.35) {
                         moveMonsterToward(game, pos, member.position);
+                        acted = true;
                     }
                 }
                 break;
             case 'patrol':
                 if (dist <= 6 && Math.random() < 0.25) {
                     moveMonsterToward(game, pos, member.position);
+                    acted = true;
                 }
                 break;
             case 'brute':
             default:
                 if (dist <= 4 && Math.random() < 0.2) {
                     moveMonsterToward(game, pos, member.position);
+                    acted = true;
                 }
                 break;
+        }
+        if (acted && updateUI) {
+            updateUI();
+            if (broadcast) broadcast({ type: 'sync', game });
+            await delay(250);
         }
     }
 }

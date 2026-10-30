@@ -191,6 +191,9 @@ function setupNetworkHandlers() {
         if (networkManager.isHost) {
             const assigned = assignPeerToMember(peerId, reconnect);
             networkManager.sendTo(peerId, { type: 'state', game, yourMemberId: assigned });
+            for (const message of networkManager.chatLog) {
+                networkManager.sendTo(peerId, message);
+            }
             networkManager.broadcast({ type: 'sync', game });
         }
     });
@@ -599,40 +602,10 @@ function startFloatingTextLoop() {
     requestAnimationFrame(frame);
 }
 
+import { initAudio, playSound } from './audio.js';
+
 function bindAudioControls() {
-    const muteToggle = document.getElementById('mute-toggle');
-    const volumeSlider = document.getElementById('volume-slider');
-    const volumeValue = document.getElementById('volume-value');
-    if (!muteToggle || !volumeSlider) return;
-
-    const stored = localStorage.getItem('pdc-audio');
-    if (stored) {
-        try {
-            const parsed = JSON.parse(stored);
-            muteToggle.checked = parsed.muted ?? false;
-            volumeSlider.value = parsed.volume ?? 0.5;
-        } catch { /* ignore */ }
-    }
-
-    const save = () => localStorage.setItem('pdc-audio', JSON.stringify({
-        muted: muteToggle.checked,
-        volume: Number(volumeSlider.value)
-    }));
-
-    muteToggle.addEventListener('change', () => { save(); updateAudioState(); });
-    volumeSlider.addEventListener('input', () => {
-        volumeValue.textContent = `${Math.round(volumeSlider.value * 100)}%`;
-        save();
-        updateAudioState();
-    });
-    volumeValue.textContent = `${Math.round(volumeSlider.value * 100)}%`;
-    updateAudioState();
-}
-
-function updateAudioState() {
-    const muted = document.getElementById('mute-toggle')?.checked ?? false;
-    const volume = Number(document.getElementById('volume-slider')?.value ?? 0.5);
-    window.__pdcAudio = { muted, volume };
+    initAudio();
 }
 
 function showErrorBoundary(error) {

@@ -34,12 +34,18 @@ The screen layout is arranged around the central dungeon map:
 - **Top center** – character name/avatar row and the dungeon level title.
 - **Top left** – map key / legend.
 - **Top right** – party loadout / inventory panel.
-- **Center left** – party chat and minimap.
-- **Center** – the ASCII dungeon map.
+- **Center left** – party chat, party setup, and minimap.
+- **Center** – the ASCII dungeon map with a fullscreen toggle (⛶).
 - **Center right** – player options and adventure log.
 - **Bottom (below the main box)** – party character sheets in a compact horizontal stat format.
 
-The currently active character sheet is outlined in **yellow**. Character sheets use a compact horizontal stat format while playing; the larger blocky sheet format is reserved for printing.
+The currently active character sheet is outlined in **yellow** and tinted by status effects (green poison, red stun, gold bless, teal haste, orange slow). Character sheets use a compact horizontal stat format while playing; the larger blocky sheet format is reserved for printing.
+
+### Party setup
+
+- Use the **New member class** dropdown and **+ Add Player** to choose a class when adding characters.
+- Click the red **×** on any character sheet to remove that character before the first move.
+- The **– Remove Active** button removes the currently active character; the last member cannot be removed.
 
 ## Multiplayer
 
@@ -54,7 +60,7 @@ The currently active character sheet is outlined in **yellow**. Character sheets
 
 ## Save data
 
-Snapshots are stored in `localStorage` under `ascii-dungeon-crawler.snapshot.v2`. Use the pause menu to save or load manually. Save files are automatically migrated from older versions when loaded.
+Save slots are stored in `localStorage` under `ascii-dungeon-crawler.slots.v1`. The pause menu lets you pick a slot name, then **Save**, **Load**, or **Delete**. Loading a slot asks for confirmation before replacing the current game. A legacy single snapshot is still kept under `ascii-dungeon-crawler.snapshot.v2` for backward compatibility. Save files are automatically migrated from older versions when loaded.
 
 ## Technical features
 

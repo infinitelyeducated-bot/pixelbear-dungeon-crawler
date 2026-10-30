@@ -340,11 +340,24 @@ export function renderCharacterSheets(game, container) {
     });
 }
 
+const STATUS_BORDER_COLORS = {
+    poison: '#76ff03',
+    stun: '#ff5252',
+    bless: '#ffd740',
+    haste: '#69f0ae',
+    slow: '#ff9100'
+};
+
 function buildCharacterSheet(game, member, index) {
     const card = document.createElement('article');
     card.className = `character-sheet ${member === activeMember(game) ? 'active' : ''}`;
     card.dataset.memberId = String(member.id);
     card.style.setProperty('--member-color', member.color);
+    const activeStatus = member.statusEffects?.find(e => e.type in STATUS_BORDER_COLORS);
+    if (member === activeMember(game) && activeStatus) {
+        card.style.outlineColor = STATUS_BORDER_COLORS[activeStatus.type];
+        card.style.borderColor = STATUS_BORDER_COLORS[activeStatus.type];
+    }
 
     const header = document.createElement('div');
     header.className = 'sheet-heading-row';

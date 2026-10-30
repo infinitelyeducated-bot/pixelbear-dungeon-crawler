@@ -11,6 +11,7 @@ import {
 } from './party.js';
 import { storeActiveFloor, loadMemberFloor, updateExplored, isWalkable, toggleDoor, getBiome, getItemAt, removeItemAt, isShrineAt, setPartyFormation } from './map.js';
 import { handleTrap, handleTreasure, attackMonster, enemyTurn, checkPartyDefeat, nearestAttackTarget, useItem, reviveAtShrine } from './combat.js';
+import { playSound } from './audio.js';
 
 export function move(game, direction, logMessage, updateUI, broadcast) {
     if (game.gameOver) return;
@@ -51,11 +52,15 @@ export function move(game, direction, logMessage, updateUI, broadcast) {
 
     if (targetCell === 'M') {
         member.movesRemaining--;
+        playSound('attack');
         const defeated = attackMonster(game, member, newX, newY, logMessage);
         if (defeated && member.hp > 0) {
             member.position = { x: newX, y: newY };
             gainExperience(member, movementExperience(), 'movement', game, logMessage);
-            if (game.treasures[`${newX},${newY}`]) handleTreasure(game, newX, newY, logMessage);
+            if (game.treasures[`${newX},${newY}`]) {
+                handleTreasure(game, newX, newY, logMessage);
+                playSound('treasure');
+            }
         }
         if (member.hp <= 0 || member.movesRemaining <= 0) finishTurn(game, logMessage, updateUI, broadcast);
         updateExplored(game, member);
@@ -66,11 +71,15 @@ export function move(game, direction, logMessage, updateUI, broadcast) {
 
     member.position = { x: newX, y: newY };
     member.movesRemaining--;
+    playSound('move');
     gainExperience(member, movementExperience(), 'movement', game, logMessage);
     logMessage(`moves ${direction} to (${newX + 1}, ${newY + 1}).`, member);
 
     if (targetCell === '^') handleTrap(game, newX, newY, logMessage);
-    if (game.treasures[`${newX},${newY}`]) handleTreasure(game, newX, newY, logMessage);
+    if (game.treasures[`${newX},${newY}`]) {
+        handleTreasure(game, newX, newY, logMessage);
+        playSound('treasure');
+    }
     const item = getItemAt(game, newX, newY);
     if (item) {
         addItemToInventory(member, item.key);
@@ -128,6 +137,7 @@ export function attack(game, logMessage, updateUI, broadcast) {
         logMessage('has no monster in attack range.', member);
         return;
     }
+    playSound('attack');
     attackMonster(game, member, target.x, target.y, logMessage);
     if (!game.gameOver) finishTurn(game, logMessage, updateUI, broadcast);
     updateUI();
@@ -179,13 +189,13 @@ export function rest(game, logMessage, updateUI, broadcast) {
     if (broadcast) broadcast({ type: 'sync', game });
 }
 
-export function finishTurn(game, logMessage, updateUI, broadcast) {
+export async function finishTurn(game, logMessage, updateUI, broadcast) {
     const member = activeMember(game);
     if (!member) return;
     logMessage('ends their turn.', member);
     tickStatusEffects(member);
     logMessage('--- Monster Phase ---', null, 'Dungeon');
-    enemyTurn(game, member, logMessage);
+    await enemyTurn(game, member, logMessage, updateUI, broadcast);
     const carryOver = Math.min(2, member.movesRemaining);
     member.movesRemaining = 0;
     if (game.gameOver) {
