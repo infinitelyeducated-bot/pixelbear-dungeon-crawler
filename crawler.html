@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PixelBear's Ascii Dungeon Crawler</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Courier New', monospace;
+        }
+        
+        body {
+            background: #1a1a1a;
+            color: #e0d6b8;
+            min-height: 100vh;
+            padding: 4px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .game-brand {
+            color: #ffcc00;
+            text-shadow: 0 0 5px rgba(255, 204, 0, 0.7);
+            margin: 3px 0;
+            font-size: 18px;
+            text-align: center;
+        }
+
+        .game-help {
+            color: #b9b3a3;
+            margin-bottom: 5px;
+            text-align: center;
+            font-size: 0.75rem;
+        }
+        
+        .game-container {
+            display: block;
+            max-width: 1700px;
+            width: 100%;
+            margin-top: 0;
+        }
+        
+        .dungeon-view {
+            background: #0a0a0a;
+            border: 3px solid #ffcc00;
+            padding: 5px;
+            width: 100%;
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .map-stage {
+            margin-top: 2px;
+        }
+
+        .dungeon-content {
+            display: grid;
+            grid-template-columns: minmax(0, 1.2fr) minmax(270px, 0.8fr);
+            align-items: start;
+            gap: 8px;
+        }
+
+        .map-column {
+            min-width: 0;
+        }
+
+        .dungeon-map {
+            text-align: center;
+        }
+
+        #level-title {
+            color: #ffcc00;
+            margin-bottom: 2px;
+            text-align: center;
+            font-size: 0.95rem;
+        }
+
+        .ascii-art {
+            font-family: 'Courier New', monospace;
+            white-space: pre;
+            font-size: 10px;
+            line-height: 1;
+        }
+        
+        .party-panel {
+            background: #1a1a2e;
+            border: 3px solid #4a4a6a;
+            padding: 7px;
+        }
+        
+        .panel-title {
+            color: #ffcc00;
+            font-size: 1.4rem;
+            margin-bottom: 15px;
+            text-align: center;
+            border-bottom: 2px solid #ffcc00;
+            padding-bottom: 10px;
+        }
+        
+        .log-panel {
+            background: #0a0a0a;
+            border: 3px solid #4a4a6a;
+            padding: 15px;
+            width: 100%;
+            min-height: 128px;
+            max-height: 224px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            margin-top: 0;
+        }
+        
+        .log-entry {
+            margin-bottom: 8px;
+            padding-left: 15px;
+            border-left: 3px solid #ffcc00;
+            line-height: 1.4;
+        }
+        
+        .action-legend {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 3px;
+            width: 100%;
+            padding: 5px;
+            border: 3px solid #4a4a6a;
+            background: #10101b;
+        }
+
+        .map-actions-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            gap: 5px;
+            margin-top: 0;
+        }
+
+        .game-log-section {
+            min-width: 0;
+        }
+
+        .game-log-section .panel-title {
+            margin-bottom: 4px;
+            padding-bottom: 4px;
+            font-size: 1rem;
+        }
+
+        .action-legend h2 {
+            grid-column: 1 / -1;
+            color: #ffcc00;
+            font-size: 0.95rem;
+            text-align: center;
+        }
+
+        .action-button {
+            position: relative;
+            min-height: 38px;
+            padding: 2px;
+            border: 1px solid #b7f5c2;
+            border-radius: 6px;
+            background: #e5ffe9;
+            color: #15241a;
+            font-size: 0.72rem;
+            line-height: 1.2;
+            box-shadow: none;
+        }
+
+        .action-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+        }
+
+        .action-button:disabled {
+            border-color: #555;
+            background: #777;
+            color: #333;
+            cursor: not-allowed;
+            opacity: 0.72;
+        }
+
+        .action-button:disabled::after {
+            position: absolute;
+            top: 50%;
+            left: 10%;
+            width: 80%;
+            height: 4px;
+            background: #080808;
+            content: "";
+            transform: rotate(-42deg);
+            pointer-events: none;
+        }
+
+        .action-key {
+            display: block;
+            margin-top: 2px;
+            color: #536353;
+            font-size: 0.62rem;
+            font-weight: normal;
+        }
+
+        .action-icon {
+            font-size: 0.95rem;
+            font-weight: 900;
+        }
+
+        .icon-move { color: #00838f; }
+        .icon-attack { color: #d50000; }
+        .icon-rest { color: #2e7d32; }
+        .icon-guard { color: #ef6c00; }
+        .icon-end { color: #1565c0; }
+
+        .action-button:disabled .action-icon { color: #333; }
+        .action-button:disabled .action-key { color: #222; }
+        .action-button.guard-active {
+            border-color: #ffe082;
+            background: #fff3c4;
+        }
+        
+        button {
+            background: linear-gradient(to bottom, #ffcc00, #ff9800);
+            color: #1a1a1a;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1.1rem;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+        }
+        
+        .dungeon-map {
+            white-space: normal;
+            font-family: 'Courier New', monospace;
+            background: #0a0a0a;
+            color: #e0d6b8;
+            padding: 2px;
+            border-radius: 5px;
+            margin: 0 auto 2px;
+            overflow: auto;
+            line-height: 1;
+            overscroll-behavior: contain;
+            scrollbar-color: #786a49 #111;
+            scrollbar-width: thin;
+        }
+
+        .dungeon-map::-webkit-scrollbar {
+            width: 3px;
+            height: 3px;
+        }
+
+        .dungeon-map::-webkit-scrollbar-track {
+            background: #111;
+        }
+
+        .dungeon-map::-webkit-scrollbar-thumb {
+            background: #786a49;
+            border-radius: 3px;
+        }
+
+        .dungeon-map-content {
+            width: max-content;
+            min-width: max-content;
+            white-space: pre;
+        }
+
+        .map-row {
+            display: block;
+            height: 1em;
+            white-space: pre;
+        }
+
+        .map-cell {
+            display: inline-block;
+            width: 1ch;
+            text-align: center;
+        }
+
+        .map-cell.monster-cell {
+            position: relative;
+            z-index: 2;
+        }
+
+        .monster-health-indicator {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            z-index: 5;
+            display: flex;
+            width: 10ch;
+            flex-direction: column;
+            align-items: center;
+            padding: 1px 2px;
+            border: 1px solid #8d3434;
+            border-radius: 3px;
+            background: #120707;
+            color: #ffe6e6;
+            font: 9px/1.1 'Courier New', monospace;
+            transform: translateX(-50%);
+            pointer-events: none;
+        }
+
+        .monster-health-label { white-space: nowrap; }
+
+        .monster-health-track {
+            display: block;
+            width: 100%;
+            height: 3px;
+            background: #493333;
+        }
+
+        .monster-health-fill {
+            display: block;
+            height: 100%;
+            background: #ef5350;
+        }
+
+        .map-cell.active-player {
+            animation: active-player-blink 0.9s steps(2, start) infinite;
+        }
+
+        @keyframes active-player-blink {
+            to { opacity: 0.2; }
+        }
+
+        .character-sheets {
+            width: 100%;
+            max-width: 1700px;
+            margin-top: 22px;
+        }
+
+        .character-sheet-layout {
+            display: grid;
+            grid-template-columns: minmax(200px, 230px) minmax(0, 1fr);
+            align-items: start;
+            gap: 14px;
+        }
+
+        .party-setup {
+            position: sticky;
+            top: 12px;
+            padding: 14px;
+            border: 2px solid #4a4a6a;
+            border-radius: 8px;
+            background: #141421;
+        }
+
+        .party-setup label {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            color: #d6d0bf;
+            font-size: 0.85rem;
+        }
+
+        .party-setup input {
+            width: 100%;
+            padding: 7px;
+            border: 1px solid #65657b;
+            border-radius: 4px;
+            background: #0a0a0a;
+            color: #fff;
+        }
+
+        .party-setup p {
+            margin-top: 8px;
+            color: #b9b3a3;
+            font-size: 0.75rem;
+            line-height: 1.4;
+        }
+
+        .party-setup button,
+        .sheet-party-actions button {
+            width: 100%;
+            margin-top: 10px;
+            padding: 8px;
+            border-radius: 5px;
+            font-size: 0.85rem;
+        }
+
+        .sheet-party-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .sheet-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 14px;
+        }
+
+        .character-sheet {
+            padding: 14px;
+            border: 2px solid #4a4a6a;
+            border-left: 5px solid var(--member-color, #ffcc00);
+            border-radius: 8px;
+            background: #141421;
+        }
+
+        .character-sheet.active {
+            box-shadow: 0 0 0 2px rgba(255, 204, 0, 0.32);
+        }
+
+        .character-sheet h3 {
+            margin-bottom: 10px;
+            color: var(--member-color, #ffcc00);
+        }
+
+        .sheet-heading-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(130px, auto);
+            align-items: end;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .sheet-heading-row h3 { margin: 0; }
+
+        .sheet-class-points {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 5px;
+            align-items: end;
+        }
+
+        .sheet-class-points label,
+        .attribute-allocation label,
+        .sheet-fields label {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            color: #d6d0bf;
+            font-size: 0.75rem;
+        }
+
+        .sheet-class-points select,
+        .attribute-allocation input,
+        .sheet-fields input {
+            min-width: 0;
+            width: 100%;
+            padding: 6px;
+            border: 1px solid #65657b;
+            border-radius: 4px;
+            background: #0a0a0a;
+            color: #fff;
+        }
+
+        .attribute-allocation input.attribute-point-control {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .attribute-allocation input.attribute-point-control:focus {
+            outline: 2px solid #ffcc00;
+        }
+
+        .remaining-points {
+            min-width: 40px;
+            padding-bottom: 6px;
+            color: #ffcc00;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .sheet-fields {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .attribute-allocation {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .attribute-allocation input:disabled,
+        .sheet-class-points select:disabled,
+        .sheet-fields input:disabled {
+            opacity: 0.62;
+        }
+
+        .sheet-status {
+            margin-top: 9px;
+            color: #ffcc00;
+            font-size: 0.8rem;
+        }
+
+        .sheet-xp {
+            margin-top: 9px;
+            color: #ffcc00;
+        }
+
+        dialog {
+            width: min(420px, calc(100% - 32px));
+            margin: auto;
+            padding: 22px;
+            border: 2px solid #ffcc00;
+            border-radius: 10px;
+            background: #1a1a2e;
+            color: #e0d6b8;
+        }
+
+        dialog::backdrop {
+            background: rgba(0, 0, 0, 0.75);
+        }
+
+        .escape-menu-actions {
+            display: grid;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .escape-menu-actions button {
+            border-radius: 6px;
+        }
+
+        .escape-menu-actions button:disabled {
+            cursor: not-allowed;
+            opacity: 0.55;
+        }
+
+        .save-status {
+            min-height: 1.2em;
+            margin-top: 10px;
+            color: #d6d0bf;
+            font-size: 0.8rem;
+        }
+
+        .layout-help {
+            margin-top: 6px;
+            color: #d6d0bf;
+            font-size: 0.8rem;
+            line-height: 1.35;
+        }
+
+        .layout-edit-item {
+            position: relative;
+            transform: translate3d(var(--layout-x, 0px), var(--layout-y, 0px), 0);
+        }
+
+        .layout-edit-item.layout-edit-active {
+            z-index: 10;
+            outline: 2px dashed #ffcc00;
+            outline-offset: 2px;
+            overflow: auto;
+            resize: both;
+            min-width: 48px;
+            min-height: 32px;
+        }
+
+        .layout-drag-handle {
+            position: absolute;
+            top: 3px;
+            right: 3px;
+            z-index: 20;
+            padding: 3px 6px;
+            border: 1px solid #ffcc00;
+            border-radius: 4px;
+            background: #27200b;
+            color: #fff;
+            font: bold 11px/1.2 'Courier New', monospace;
+            cursor: move;
+            touch-action: none;
+            user-select: none;
+        }
+
+        .layout-drag-handle:hover {
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .legend {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 3px 8px;
+            flex-wrap: wrap;
+            width: 100%;
+            margin-top: 0;
+            padding: 5px 7px;
+            border: 1px solid #4a4a6a;
+            border-radius: 5px;
+            background: #15151e;
+        }
+
+        .legend-title {
+            width: 100%;
+            color: #bfc7d5;
+            font-size: 0.65rem;
+            font-weight: bold;
+            letter-spacing: 0.09em;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #d7d7df;
+            font-size: 0.68rem;
+        }
+        
+        .legend-symbol {
+            display: inline-flex;
+            width: 1.4em;
+            height: 1.4em;
+            align-items: center;
+            justify-content: center;
+            border-radius: 3px;
+            font-size: 0.95rem;
+            font-weight: bold;
+        }
+
+        .legend-wall { color: #ffffff; }
+        .legend-start { color: #00e5ff; }
+        .legend-monster { color: #ff5252; }
+        .legend-treasure { color: #ffd740; }
+        .legend-symbol.legend-power { color: #ffeb3b; }
+        .legend-trap { color: #ff9100; }
+        .legend-exit { color: #69f0ae; }
+
+        .player-legend-markers {
+            display: inline-flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .player-legend-marker {
+            display: inline-flex;
+            min-width: 1.5em;
+            height: 1.5em;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid currentColor;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+
+        .network-section {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .network-section button {
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            border-radius: 5px;
+        }
+
+        .network-status {
+            color: #b9b3a3;
+            font-size: 0.75rem;
+        }
+        
+        @media (max-width: 900px) {
+            .character-sheet-layout {
+                grid-template-columns: minmax(0, 1fr);
+            }
+
+            .party-setup {
+                position: static;
+            }
+        }
+
+        @media (max-width: 720px) {
+            .dungeon-content {
+                grid-template-columns: minmax(0, 1fr);
+            }
+        }
+
+        @media (max-width: 620px) {
+            .sheet-grid {
+                grid-template-columns: minmax(0, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <p class="game-help">Press Escape to pause, resume, or jump to the character sheets.</p>
+        <div class="dungeon-view">
+            <h1 class="game-brand">PixelBear's Ascii Dungeon Crawler</h1>
+            <div class="dungeon-content">
+                <section class="map-column" aria-label="Dungeon map">
+                    <h3 id="level-title">DUNGEON LEVEL 1</h3>
+                    <div id="dungeon-map" class="dungeon-map">
+                        <div id="dungeon-map-content" class="dungeon-map-content"></div>
+                    </div>
+                    <div class="legend" aria-label="Dungeon map legend">
+                        <span class="legend-title">MAP KEY</span>
+                        <div class="legend-item">
+                            <span class="legend-label">Players</span>
+                            <span id="player-legend-markers" class="player-legend-markers"></span>
+                        </div>
+                        <div class="legend-item"><span class="legend-symbol legend-wall">#</span> Wall</div>
+                        <div class="legend-item"><span class="legend-symbol legend-start">S</span> Start</div>
+                        <div class="legend-item"><span class="legend-symbol legend-monster">M</span> Monster</div>
+                        <div class="legend-item"><span class="legend-symbol legend-treasure">$</span> Coin</div>
+                        <div class="legend-item"><span class="legend-symbol legend-treasure">%</span> Gem</div>
+                        <div class="legend-item"><span class="legend-symbol legend-treasure">&amp;</span> Relic</div>
+                        <div class="legend-item"><span class="legend-symbol legend-power">P</span> Power Item</div>
+                        <div class="legend-item"><span class="legend-symbol legend-trap">^</span> Trap</div>
+                        <div class="legend-item"><span class="legend-symbol legend-exit">&gt;</span> Exit</div>
+                    </div>
+                </section>
+                <div class="map-actions-row">
+                    <section class="action-legend" aria-label="Player actions">
+                        <h2>PLAYER OPTIONS</h2>
+                        <button id="move-up" class="action-button" aria-label="Move up"><span class="action-icon icon-move">↑</span> Up<span class="action-key">↑ / W</span></button>
+                        <button id="move-left" class="action-button" aria-label="Move left"><span class="action-icon icon-move">←</span> Left<span class="action-key">← / A</span></button>
+                        <button id="move-down" class="action-button" aria-label="Move down"><span class="action-icon icon-move">↓</span> Down<span class="action-key">↓ / S</span></button>
+                        <button id="move-right" class="action-button" aria-label="Move right"><span class="action-icon icon-move">→</span> Right<span class="action-key">→ / D</span></button>
+                        <button id="attack-btn" class="action-button" aria-label="Attack"><span class="action-icon icon-attack">⚔</span> Attack<span class="action-key">F</span></button>
+                        <button id="rest-btn" class="action-button" aria-label="Rest and heal"><span class="action-icon icon-rest">✚</span> Rest<span class="action-key">R</span></button>
+                        <button id="guard-btn" class="action-button" aria-label="Stand guard"><span class="action-icon icon-guard">▣</span> Guard<span class="action-key">G</span></button>
+                        <button id="end-turn-btn" class="action-button" aria-label="End turn"><span class="action-icon icon-end">≫</span> End Turn<span class="action-key">E</span></button>
+                    </section>
+                    <section class="game-log-section" aria-label="Game events">
+                        <h2 class="panel-title">ADVENTURE LOG</h2>
+                        <div id="game-log" class="log-panel"></div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section id="character-sheets" class="character-sheets">
+        <h2 class="panel-title">PARTY CHARACTER SHEETS</h2>
+        <div class="character-sheet-layout">
+            <section class="party-setup">
+                <h3 style="color:#ffcc00; margin-bottom:10px;">PARTY SETUP</h3>
+                <label for="gm-starting-points">GM starting points per player
+                    <input id="gm-starting-points" type="number" min="0" max="544" step="1" placeholder="Enter points">
+                </label>
+                <p>DM distributes points per character before the first move. Unused points are forfeited on the first move. On level, +2 to invested stats and +0.5 to all others.</p>
+                <div class="sheet-party-actions">
+                    <button id="add-member-btn" style="background:#4caf50;">+ Add Player</button>
+                    <button id="remove-member-btn" style="background:#f44336;" disabled>– Remove Active</button>
+                </div>
+                <div class="network-section">
+                    <button id="network-button" type="button" style="background:#2196f3; color:#fff;">Network</button>
+                    <span id="network-status" class="network-status">Offline</span>
+                </div>
+            </section>
+            <div>
+                <div id="character-sheet-list" class="sheet-grid"></div>
+            </div>
+        </div>
+    </section>
+
+    <dialog id="escape-menu" aria-labelledby="escape-menu-title">
+        <h2 id="escape-menu-title">PAUSED</h2>
+        <div class="escape-menu-actions">
+            <button id="resume-button">Resume Game</button>
+            <button id="open-sheets-button">Character Sheets</button>
+            <button id="toggle-layout-edit-button" aria-pressed="false">Enable Layout Editing</button>
+            <button id="reset-layout-button">Restore Default Layout</button>
+            <button id="save-game-button">Save Game Snapshot</button>
+            <button id="load-game-button">Load Saved Game</button>
+            <button id="reset-game-button" style="background:linear-gradient(to bottom, #ef5350, #c62828); color:#fff;">Reset Game</button>
+        </div>
+        <p id="layout-status" class="layout-help" role="status" aria-live="polite">
+            Layout editing is off. Turn it on to drag or resize game panels.
+        </p>
+        <p id="save-status" class="save-status" role="status" aria-live="polite"></p>
+    </dialog>
+
+    <dialog id="network-dialog" aria-labelledby="network-dialog-title">
+        <h2 id="network-dialog-title">Network Game</h2>
+        <p style="font-size:0.8rem; margin-bottom:10px;">Host a game or join another player on the same LAN/WAN. All players must have this page open.</p>
+        <label style="display:flex; flex-direction:column; gap:4px; margin-bottom:10px; font-size:0.8rem;">
+            Signaling server
+                    <input id="signaling-url" type="text" value="ws://localhost:8080" style="padding:6px; background:#0a0a0a; color:#fff; border:1px solid #65657b; border-radius:4px;">
+        </label>
+        <div style="display:grid; gap:10px; margin-bottom:10px;">
+            <button id="host-button" type="button" style="background:#4caf50;">Host Game</button>
+            <div style="display:flex; gap:8px;">
+                <input id="join-host-id" type="text" placeholder="Host ID" style="flex:1; padding:6px; background:#0a0a0a; color:#fff; border:1px solid #65657b; border-radius:4px;">
+                <button id="join-button" type="button" style="background:#2196f3; color:#fff;">Join</button>
+            </div>
+        </div>
+        <p id="host-id-display" style="color:#ffcc00; font-size:0.85rem; min-height:1.2em;"></p>
+        <p id="network-mode" style="color:#b9b3a3; font-size:0.75rem; min-height:1.2em;"></p>
+        <div style="display:flex; justify-content:flex-end; margin-top:12px;">
+            <button id="network-cancel" type="button" class="secondary" style="background:transparent; color:#c0d0ce; border:1px solid #42636a; border-radius:6px;">Close</button>
+        </div>
+    </dialog>
+
+    <script type="module" src="modules/main.js"></script>
+</body>
+</html>
