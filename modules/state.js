@@ -85,6 +85,7 @@ export function createPartyMember(game, name, classKey) {
         className: base.name,
         classKey,
         race: classSettings.race,
+        level: 1,
         hp: base.hp,
         maxHp: base.maxHp,
         attack: base.attack,
