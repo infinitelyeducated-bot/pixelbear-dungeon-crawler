@@ -41,7 +41,8 @@
             display: block;
             max-width: 1700px;
             width: 100%;
-            margin-top: 0;
+            margin: 0 auto;
+            padding-top: 10px;
         }
         
         .dungeon-view {
@@ -482,22 +483,45 @@
             min-height: 0;
             max-height: 100%;
             overflow: hidden;
+            padding: 10px 0 0;
         }
 
-        .character-sheet-layout {
-            display: grid;
-            grid-template-columns: minmax(200px, 230px) minmax(0, 1fr);
-            align-items: start;
-            gap: 14px;
+        .sheet-grid {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 10px;
+            justify-content: center;
+            align-items: stretch;
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding-bottom: 6px;
+        }
+
+        .sheet-grid .character-sheet {
+            flex: 1 1 0;
+            min-width: 180px;
+            max-width: 220px;
         }
 
         .party-setup {
-            padding: 10px;
-            border: 2px solid #4a4a6a;
-            border-radius: 8px;
-            background: #141421;
-            overflow-y: auto;
-            max-height: 360px;
+            width: 100%;
+            padding: 12px 16px;
+            border-bottom: 2px solid #4a4a6a;
+            background: linear-gradient(180deg, #1a1a28 0%, #141421 100%);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .party-setup h3 {
+            width: 100%;
+            text-align: center;
+            color: #ffcc00;
+            margin: 0 0 6px;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
         }
 
         .party-setup label {
@@ -505,7 +529,8 @@
             flex-direction: column;
             gap: 2px;
             color: #d6d0bf;
-            font-size: 0.78rem;
+            font-size: 0.72rem;
+            min-width: 110px;
         }
 
         .party-setup input,
@@ -516,11 +541,21 @@
             border-radius: 4px;
             background: #0a0a0a;
             color: #fff;
-            margin-top: 3px;
+            margin-top: 2px;
         }
 
-        .party-setup label + label {
-            margin-top: 6px;
+        .party-setup .sheet-party-actions,
+        .party-setup .network-section {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 130px;
+        }
+
+        .party-setup button {
+            width: 100%;
+            padding: 6px 10px;
+            margin: 0;
         }
 
         #inventory-section {
@@ -673,20 +708,19 @@
 
         .sheet-stats-row {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 4px;
-            margin-top: 6px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 3px;
+            margin-top: 4px;
         }
 
         .sheet-stat {
             display: flex;
             justify-content: space-between;
             gap: 4px;
-            padding: 3px 5px;
-            border: 1px solid #4a4a6a;
-            border-radius: 4px;
-            background: #0a0a0a;
-            font-size: 0.7rem;
+            padding: 2px 4px;
+            border-radius: 3px;
+            background: #0a0a10;
+            font-size: 0.66rem;
         }
 
         .sheet-stat-label { color: #b9b3a3; }
@@ -1220,12 +1254,12 @@
                 width: 100%;
             }
 
-            .character-sheet-layout {
-                grid-template-columns: minmax(0, 1fr);
-            }
-
             .party-setup {
                 position: static;
+            }
+
+            .sheet-grid .character-sheet {
+                min-width: 150px;
             }
         }
 
@@ -1239,6 +1273,41 @@
 <body>
     <div class="game-container">
         <p class="game-help">Press Escape to pause, resume, or jump to the character sheets.</p>
+        <section class="party-setup" aria-label="Party setup">
+            <h3>✦ PARTY SETUP ✦</h3>
+            <label for="gm-starting-points">GM starting points per player
+                <input id="gm-starting-points" type="number" min="0" max="544" step="1" placeholder="Enter points">
+            </label>
+            <label for="difficulty-select">Difficulty
+                <select id="difficulty-select">
+                    <option value="easy">Easy</option>
+                    <option value="normal" selected>Normal</option>
+                    <option value="hard">Hard (permadeath)</option>
+                    <option value="nightmare">Nightmare (permadeath)</option>
+                </select>
+            </label>
+            <label for="formation-select">Formation
+                <select id="formation-select">
+                    <option value="cluster" selected>Cluster</option>
+                    <option value="line">Line</option>
+                    <option value="wedge">Wedge</option>
+                    <option value="spread">Spread</option>
+                </select>
+            </label>
+            <label for="add-member-class">New member class
+                <select id="add-member-class">
+                    <option value="fighter" selected>Fighter</option>
+                </select>
+            </label>
+            <div class="sheet-party-actions">
+                <button id="add-member-btn" style="background:#4caf50;">+ Add Player</button>
+                <button id="remove-member-btn" style="background:#f44336;" disabled>– Remove Active</button>
+            </div>
+            <div class="network-section">
+                <button id="network-button" type="button" style="background:#2196f3; color:#fff;">Network</button>
+                <span id="network-status-right" class="network-status">Offline</span>
+            </div>
+        </section>
         <div class="dungeon-view">
             <div class="top-bar">
                 <section class="legend" aria-label="Dungeon map legend">
@@ -1275,48 +1344,12 @@
             <div class="main-stage">
                 <section class="left-column" aria-label="Controls and info">
                     <section id="chat-section" aria-label="Chat">
-                        <h2 class="panel-title" style="font-size:0.85rem;">PARTY CHAT</h2>
-                        <div id="chat-log" class="chat-log"></div>
-                        <form id="chat-form" class="chat-form">
-                            <input id="chat-input" type="text" placeholder="Send a message..." maxlength="200" autocomplete="off">
-                            <button type="submit">Send</button>
-                        </form>
-                    </section>
-                    <section class="party-setup" aria-label="Party setup">
-                        <h3 style="color:#ffcc00; margin-bottom:6px;">PARTY SETUP</h3>
-                        <label for="gm-starting-points">GM starting points per player
-                            <input id="gm-starting-points" type="number" min="0" max="544" step="1" placeholder="Enter points">
-                        </label>
-                        <label for="difficulty-select">Difficulty
-                            <select id="difficulty-select">
-                                <option value="easy">Easy</option>
-                                <option value="normal" selected>Normal</option>
-                                <option value="hard">Hard (permadeath)</option>
-                                <option value="nightmare">Nightmare (permadeath)</option>
-                            </select>
-                        </label>
-                        <label for="formation-select">Formation
-                            <select id="formation-select">
-                                <option value="cluster" selected>Cluster</option>
-                                <option value="line">Line</option>
-                                <option value="wedge">Wedge</option>
-                                <option value="spread">Spread</option>
-                            </select>
-                        </label>
-                        <label for="add-member-class">New member class
-                            <select id="add-member-class">
-                                <option value="fighter" selected>Fighter</option>
-                            </select>
-                        </label>
-                        <div class="sheet-party-actions">
-                            <button id="add-member-btn" style="background:#4caf50;">+ Add Player</button>
-                            <button id="remove-member-btn" style="background:#f44336;" disabled>– Remove Active</button>
-                        </div>
-                        <div class="network-section">
-                            <button id="network-button" type="button" style="background:#2196f3; color:#fff;">Network</button>
-                            <span id="network-status-right" class="network-status">Offline</span>
-                        </div>
-                    </section>
+                    <h2 class="panel-title" style="font-size:0.85rem;">PARTY CHAT</h2>
+                    <div id="chat-log" class="chat-log"></div>
+                    <form id="chat-form" class="chat-form">
+                        <input id="chat-input" type="text" placeholder="Send a message..." maxlength="200" autocomplete="off">
+                        <button type="submit">Send</button>
+                    </form>
                 </section>
                 <section class="map-column" id="map-column" aria-label="Dungeon map">
                     <button id="fullscreen-toggle" class="fullscreen-toggle" type="button" title="Toggle fullscreen map">⛶</button>
