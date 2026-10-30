@@ -1,4 +1,4 @@
-import { activeMember } from './state.js';
+import { activeMember } from './state.js?v=mvvmi850';
 import {
     adjacentDeadPartyMembers,
     setMovementAllowance,
@@ -8,13 +8,20 @@ import {
     addItemToInventory,
     tickStatusEffects,
     hasStatusEffect
-} from './party.js';
-import { storeActiveFloor, loadMemberFloor, updateExplored, isWalkable, toggleDoor, getBiome, getItemAt, removeItemAt, isShrineAt, setPartyFormation } from './map.js';
-import { handleTrap, handleTreasure, attackMonster, enemyTurn, checkPartyDefeat, nearestAttackTarget, useItem, reviveAtShrine } from './combat.js';
-import { playSound } from './audio.js';
-import { useAbility, refreshAbilityTurn, restoreCharges } from './abilities.js';
+} from './party.js?v=mvvmi850';
+import { storeActiveFloor, loadMemberFloor, updateExplored, isWalkable, toggleDoor, getBiome, getItemAt, removeItemAt, isShrineAt, setPartyFormation } from './map.js?v=mvvmi850';
+import { handleTrap, handleTreasure, attackMonster, enemyTurn, checkPartyDefeat, nearestAttackTarget, useItem, reviveAtShrine } from './combat.js?v=mvvmi850';
+import { playSound } from './audio.js?v=mvvmi850';
+import { useAbility, refreshAbilityTurn, restoreCharges } from './abilities.js?v=mvvmi850';
+
+// True while the monster phase is running after a turn ends. Every player action
+// checks this so a second End Turn (or a key press) cannot skip the next player.
+export function isBusy(game) {
+    return game.turnEnding === true;
+}
 
 export function castAbility(game, slot, logMessage, updateUI, broadcast) {
+    if (isBusy(game)) return;
     const member = activeMember(game);
     if (!member || member.hp <= 0 || game.gameOver) return;
     if (hasStatusEffect(member, 'stun')) {
@@ -31,7 +38,7 @@ export function castAbility(game, slot, logMessage, updateUI, broadcast) {
 }
 
 export function move(game, direction, logMessage, updateUI, broadcast) {
-    if (game.gameOver) return;
+    if (game.gameOver || isBusy(game)) return;
     const member = activeMember(game);
     if (!member || member.hp <= 0) return;
     if (!game.hasStarted && game.requireAllReady && !game.party.every(m => m.ready === true)) {
@@ -61,10 +68,7 @@ export function move(game, direction, logMessage, updateUI, broadcast) {
             logMessage('A chasm blocks the way.', member);
             return;
         }
-        if (targetCell === '~') {
-            logMessage('Water is too deep to wade through.', member);
-            return;
-        }
+
         logMessage('A wall blocks the way.', member);
         return;
     }
@@ -78,7 +82,8 @@ export function move(game, direction, logMessage, updateUI, broadcast) {
         const defeated = attackMonster(game, member, newX, newY, logMessage);
         if (defeated && member.hp > 0) {
             member.position = { x: newX, y: newY };
-            gainExperience(member, movementExperience(), 'movement', game, logMessage);
+            if (!game.visitedTiles) game.visitedTiles = {};
+            game.visitedTiles[`${member.dungeonLevel}:${newX},${newY}`] = true;
             if (game.treasures[`${newX},${newY}`]) {
                 handleTreasure(game, newX, newY, logMessage);
                 playSound('treasure');
@@ -91,10 +96,24 @@ export function move(game, direction, logMessage, updateUI, broadcast) {
         return;
     }
 
+    // Water slows movement: wading costs 2 movement points instead of 1.
+    if (targetCell === '~') {
+        if (member.movesRemaining < 2) {
+            logMessage('is too tired to wade through the water this turn (needs 2 movement).', member);
+            return;
+        }
+        member.movesRemaining--;
+        logMessage('wades through water.', member);
+    }
     member.position = { x: newX, y: newY };
     member.movesRemaining--;
     playSound('move');
-    gainExperience(member, movementExperience(), 'movement', game, logMessage);
+    const exploreKey = `${member.dungeonLevel}:${newX},${newY}`;
+    if (!game.visitedTiles) game.visitedTiles = {};
+    if (!game.visitedTiles[exploreKey]) {
+        game.visitedTiles[exploreKey] = true;
+        gainExperience(member, movementExperience(), 'exploring', game, logMessage);
+    }
     logMessage(`moves ${direction} to (${newX + 1}, ${newY + 1}).`, member);
 
     if (targetCell === '^') handleTrap(game, newX, newY, logMessage);
@@ -125,6 +144,7 @@ export function move(game, direction, logMessage, updateUI, broadcast) {
 }
 
 export function useInventoryItem(game, itemKey, logMessage, updateUI, broadcast) {
+    if (isBusy(game)) return;
     const member = activeMember(game);
     if (!member || member.hp <= 0 || game.gameOver) return;
     if (useItem(game, itemKey, member, logMessage)) {
@@ -152,6 +172,7 @@ export function setFormation(game, formation, logMessage) {
 }
 
 export function attack(game, logMessage, updateUI, broadcast) {
+    if (isBusy(game)) return;
     const member = activeMember(game);
     if (!member || member.hp <= 0 || game.gameOver) return;
     const target = nearestAttackTarget(game, member);
@@ -167,6 +188,7 @@ export function attack(game, logMessage, updateUI, broadcast) {
 }
 
 export function standGuard(game, logMessage, updateUI, broadcast) {
+    if (isBusy(game)) return;
     const member = activeMember(game);
     if (!member || member.hp <= 0 || game.gameOver || member.guardActive) return;
     const fallen = member.classKey === 'cleric' && member.movesRemaining >= 3
@@ -192,6 +214,7 @@ export function standGuard(game, logMessage, updateUI, broadcast) {
 }
 
 export function rest(game, logMessage, updateUI, broadcast) {
+    if (isBusy(game)) return;
     const member = activeMember(game);
     if (!member || member.hp <= 0) return;
     if (hasStatusEffect(member, 'stun')) {
@@ -214,8 +237,27 @@ export function rest(game, logMessage, updateUI, broadcast) {
 }
 
 export async function finishTurn(game, logMessage, updateUI, broadcast) {
+    if (isBusy(game)) return;
     const member = activeMember(game);
     if (!member) return;
+    game.turnEnding = true;
+    const started = Date.now();
+    try {
+        await runTurnEnd(game, member, logMessage, updateUI, broadcast);
+    } finally {
+        // Keep the lock for a human-visible moment so a double-click or key
+        // repeat cannot end the next player's turn as well. Headless callers
+        // (tests, bots) pass no UI and are not delayed.
+        if (game.turnEndMinMs > 0) {
+            const remaining = game.turnEndMinMs - (Date.now() - started);
+            if (remaining > 0) await new Promise(resolve => setTimeout(resolve, remaining));
+        }
+        game.turnEnding = false;
+        updateUI();
+    }
+}
+
+async function runTurnEnd(game, member, logMessage, updateUI, broadcast) {
     logMessage('ends their turn.', member);
     tickStatusEffects(member);
     logMessage('--- Monster Phase ---', null, 'Dungeon');

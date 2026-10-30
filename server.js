@@ -35,7 +35,7 @@ const server = http.createServer((req, res) => {
         }
         res.writeHead(200, {
             'Content-Type': MIME[ext] || 'application/octet-stream',
-            'Cache-Control': 'no-cache, must-revalidate'
+            'Cache-Control': 'no-store'
         });
         res.end(data);
     });

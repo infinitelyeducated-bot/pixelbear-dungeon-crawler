@@ -1,9 +1,9 @@
-import { POWER_ITEM_DROP_CHANCE, MAX_CHARACTER_LEVEL, ENEMIES, MAX_ENEMY_SCALE_LEVEL, MAX_ENEMY_ATTACK_BONUS, BOSSES, ITEMS } from './config.js';
-import { positionKey } from './utils.js';
-import { pathDistanceWithin } from './pathfinding.js';
-import { addFloatingText } from './ui.js';
-import { activeMember } from './state.js';
-import { playSound } from './audio.js';
+import { POWER_ITEM_DROP_CHANCE, MAX_CHARACTER_LEVEL, ENEMIES, MAX_ENEMY_SCALE_LEVEL, MAX_ENEMY_ATTACK_BONUS, BOSSES, ITEMS } from './config.js?v=mvvmi850';
+import { positionKey } from './utils.js?v=mvvmi850';
+import { pathDistanceWithin } from './pathfinding.js?v=mvvmi850';
+import { addFloatingText } from './ui.js?v=mvvmi850';
+import { activeMember } from './state.js?v=mvvmi850';
+import { playSound } from './audio.js?v=mvvmi850';
 import {
     adjacentPartyMembers,
     adjacentDeadPartyMembers,
@@ -16,7 +16,7 @@ import {
     tickStatusEffects,
     clearStatusEffect,
     hasStatusEffect
-} from './party.js';
+} from './party.js?v=mvvmi850';
 
 export function handleTrap(game, x, y, logMessage) {
     const member = activeMember(game);
@@ -224,9 +224,43 @@ async function activateMonsterAI(game, member, logMessage, updateUI, broadcast) 
     }
     for (const pos of monsterPositions) {
         const m = pos.monster;
-        const dist = Math.abs(pos.x - member.position.x) + Math.abs(pos.y - member.position.y);
-        if (dist > 8) continue;
         let acted = false;
+
+        // Poison (Rogue's Poison Vial): damage over time, then wears off.
+        if (m.poisoned > 0) {
+            const tick = Math.max(1, Math.floor(m.maxHp ? m.maxHp * 0.08 : 2));
+            m.hp = Math.max(0, m.hp - tick);
+            m.poisoned--;
+            addFloatingText(pos.x, pos.y, `-${tick} ☠`, '#76ff03');
+            logMessage(`${m.name} takes ${tick} poison damage${m.poisoned ? ` (${m.poisoned} turn(s) left)` : ' and the poison wears off'}.`, null, m.name);
+            if (m.hp <= 0) {
+                delete game.monsters[positionKey(pos.x, pos.y)];
+                game.map[pos.y][pos.x] = '.';
+                logMessage(`${m.name} succumbs to poison!`, null, m.name);
+                acted = true;
+                if (updateUI) { updateUI(); if (broadcast) broadcast({ type: 'sync', game }); await delay(250); }
+                continue;
+            }
+            acted = true;
+        }
+
+        // Slow (Archer's Pinning Shot): the monster loses every other turn.
+        if (m.slowed > 0) {
+            m.slowed--;
+            m.slowSkip = !m.slowSkip;
+            if (m.slowSkip) {
+                logMessage(`${m.name} is pinned and cannot act${m.slowed ? '' : '; it shakes the arrow loose'}.`, null, m.name);
+                if (updateUI) { updateUI(); if (broadcast) broadcast({ type: 'sync', game }); await delay(250); }
+                continue;
+            }
+            if (!m.slowed) logMessage(`${m.name} is no longer pinned.`, null, m.name);
+        }
+
+        const dist = Math.abs(pos.x - member.position.x) + Math.abs(pos.y - member.position.y);
+        if (dist > 8) {
+            if (acted && updateUI) { updateUI(); if (broadcast) broadcast({ type: 'sync', game }); await delay(250); }
+            continue;
+        }
         switch (m.ai) {
             case 'ranged':
                 if (dist <= 4 && dist > 1) {
@@ -505,7 +539,7 @@ export function useItem(game, itemKey, member, logMessage) {
     return true;
 }
 
-import { removeItemFromInventory, setMovementAllowance } from './party.js';
+import { removeItemFromInventory, setMovementAllowance } from './party.js?v=mvvmi850';
 
 export function nearestAttackTarget(game, member) {
     if (!member?.position) return null;

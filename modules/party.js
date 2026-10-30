@@ -1,5 +1,5 @@
-import { CLASSES, CLASS_SETTINGS, MAX_PARTY_SIZE, MAX_CHARACTER_LEVEL, DIFFICULTIES } from './config.js';
-import { activeMember } from './state.js';
+import { CLASSES, CLASS_SETTINGS, MAX_PARTY_SIZE, MAX_CHARACTER_LEVEL, DIFFICULTIES } from './config.js?v=mvvmi850';
+import { activeMember } from './state.js?v=mvvmi850';
 
 export function movementAllowance(member) {
     return 10;
@@ -17,7 +17,7 @@ export function setMovementAllowance(member) {
 
 export function updateDerivedStats(member) {
     const levelBonus = member.level - 1;
-    member.maxHp = member.classBase.maxHp + levelBonus * 5 + Math.max(0, member.constitution - 10) * 5;
+    member.maxHp = Math.round(member.classBase.maxHp + levelBonus * 5 + Math.max(0, member.constitution - 10) * 5);
     member.attack = member.classBase.attack + levelBonus +
         (member.classKey === 'fighter' ? Math.floor(Math.max(0, member.strength - 10) / 5) : 0) +
         (member.powerItems || 0) * 5;
@@ -116,9 +116,19 @@ export function checkLevelUp(member, game, logMessage) {
         member.level++;
         const allocated = member.allocatedFields || [];
         const allStats = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma', 'initiative'];
+        // Invested stats gain +2 per level. Other stats gain +0.5 per level, banked as
+        // half-points so the displayed value stays a whole number (+1 every second level).
+        if (!member.halfPoints) member.halfPoints = {};
         for (const stat of allStats) {
-            const bonus = allocated.includes(stat) ? 2 : 0.5;
-            member[stat] = (member[stat] || 0) + bonus;
+            if (allocated.includes(stat)) {
+                member[stat] = Math.round((member[stat] || 0) + 2);
+            } else {
+                member.halfPoints[stat] = (member.halfPoints[stat] || 0) + 1;
+                if (member.halfPoints[stat] >= 2) {
+                    member.halfPoints[stat] -= 2;
+                    member[stat] = Math.round((member[stat] || 0) + 1);
+                }
+            }
         }
         updateDerivedStats(member);
         member.hp = member.maxHp;
@@ -180,4 +190,4 @@ export function adjacentDeadPartyMembers(game, member) {
     );
 }
 
-import { PLAYER_COLORS, PLAYER_MARKERS } from './config.js';
+import { PLAYER_COLORS, PLAYER_MARKERS } from './config.js?v=mvvmi850';

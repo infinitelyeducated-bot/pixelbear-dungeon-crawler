@@ -4,7 +4,8 @@
   "description": "",
   "main": "crawler.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node stamp-version.cjs && node server.js",
+    "stamp": "node stamp-version.cjs",
     "test": "node --test tests/**/*.test.js"
   },
   "keywords": [],

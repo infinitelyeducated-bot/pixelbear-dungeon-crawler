@@ -14,8 +14,8 @@ import {
     CLASSES,
     PLAYER_COLORS,
     PLAYER_MARKERS
-} from './config.js';
-import { deepClone, positionKey } from './utils.js';
+} from './config.js?v=mvvmi850';
+import { deepClone, positionKey } from './utils.js?v=mvvmi850';
 
 export const MIGRATIONS = {
     1: snapshot => {
@@ -53,6 +53,8 @@ export function createGame() {
         turn: 0,
         nextMemberId: 1,
         hasStarted: false,
+        turnEnding: false,
+        visitedTiles: {},
         startingPointsPerPlayer: null,
         difficulty: 'normal',
         shrinesUsed: {},
@@ -190,6 +192,14 @@ export function loadSnapshot(snapshot) {
     const migrated = migrateSnapshot(snapshot);
     if (!migrated || !validateSnapshot(migrated)) return null;
     const game = deepClone(migrated.game);
+    game.turnEnding = false; // never restore a save in the middle of a monster phase
+    if (!game.visitedTiles) game.visitedTiles = {};
+    // Older saves could carry fractional stats/HP from the +0.5-per-level rule.
+    for (const m of game.party || []) {
+        for (const k of ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma', 'initiative', 'hp', 'maxHp']) {
+            if (typeof m[k] === 'number' && !Number.isInteger(m[k])) m[k] = Math.round(m[k]);
+        }
+    }
     game.activeMember = () => game.party[game.activeMemberIndex] || null;
     return { game, log: deepClone(migrated.log) };
 }

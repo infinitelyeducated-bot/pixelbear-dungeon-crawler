@@ -1,20 +1,24 @@
-import { createGame, createPartyMember, activeMember, persistSnapshot, loadStoredSnapshot, saveSnapshot, listSaveSlots, saveSlot, loadSlot, deleteSlot } from './state.js';
-import { generateMap, storeActiveFloor, loadMemberFloor, setPartyFormation, isWalkable } from './map.js';
-import { applyCharacterClass, updateDerivedStats, setMovementAllowance, getDifficultySettings, adjacentDeadPartyMembers } from './party.js';
-import { createLogger } from './log.js';
-import { LayoutManager } from './layout.js';
-import { NetworkManager } from './network.js';
-import { renderMap, renderLegend, updateActionButtons, renderCharacterSheets, updateMapSizing, centerMapOnActiveMember, renderMinimap, renderTurnOrder, renderFloatingTexts, updateFloatingTexts, renderTopPartyRow } from './ui.js';
-import { bindInput } from './input.js';
-import { handleRemoteAction, sendLocalAction, confirmLocalAction, rejectLocalAction } from './network-actions.js';
-import { nearestAttackTarget } from './combat.js';
-import { MAX_PARTY_SIZE, CLASSES, DIFFICULTIES, ITEMS } from './config.js';
+import { createGame, createPartyMember, activeMember, persistSnapshot, loadStoredSnapshot, saveSnapshot, listSaveSlots, saveSlot, loadSlot, deleteSlot } from './state.js?v=mvvmi850';
+import { generateMap, storeActiveFloor, loadMemberFloor, setPartyFormation, isWalkable, placeNewMember } from './map.js?v=mvvmi850';
+import { applyCharacterClass, updateDerivedStats, setMovementAllowance, getDifficultySettings, adjacentDeadPartyMembers } from './party.js?v=mvvmi850';
+import { createLogger } from './log.js?v=mvvmi850';
+import { LayoutManager } from './layout.js?v=mvvmi850';
+import { NetworkManager } from './network.js?v=mvvmi850';
+import { renderMap, renderLegend, updateActionButtons, renderCharacterSheets, updateMapSizing, centerMapOnActiveMember, renderMinimap, renderTurnOrder, renderFloatingTexts, updateFloatingTexts, renderTopPartyRow } from './ui.js?v=mvvmi850';
+import { bindInput } from './input.js?v=mvvmi850';
+import { handleRemoteAction, sendLocalAction, confirmLocalAction, rejectLocalAction } from './network-actions.js?v=mvvmi850';
+import { nearestAttackTarget } from './combat.js?v=mvvmi850';
+import { MAX_PARTY_SIZE, CLASSES, DIFFICULTIES, ITEMS } from './config.js?v=mvvmi850';
 
 let game = createGame();
 let gameLog = [];
 let logMessage = createLogger(gameLog, appendLogRecord);
 let layoutManager = new LayoutManager();
 let networkManager = null;
+
+// In the browser, keep the turn lock for at least this long so a double-click on
+// End Turn cannot end the next player's turn too. Bots and tests leave it at 0.
+const TURN_END_MIN_MS = 350;
 
 function initGame() {
     const stored = loadStoredSnapshot();
@@ -25,10 +29,12 @@ function initGame() {
     } else {
         startNewGame();
     }
+    game.turnEndMinMs = TURN_END_MIN_MS;
 }
 
 function startNewGame() {
     game = createGame();
+    game.turnEndMinMs = TURN_END_MIN_MS;
     setPartyFormation(game, 'cluster');
     game.difficulty = 'normal';
     gameLog = [];
@@ -42,7 +48,7 @@ function startNewGame() {
     generateMap(game, activeMember(game), logMessage);
     updateUI();
     logMessage('Welcome to the ASCII Dungeon! Navigate to find treasure and defeat enemies.', null, 'Dungeon');
-    logMessage('DM distributes 3 points per character before the first move; unused points are forfeited. On level, +2 to invested stats and +0.5 to others.', activeMember(game));
+    logMessage('DM distributes 3 points per character before the first move; unused points are forfeited. On level, +2 to invested stats and +1 every second level to others.', activeMember(game));
 }
 
 export function updateUI() {
@@ -83,7 +89,7 @@ function renderInventoryPanel(game) {
         btn.title = item.description;
         btn.disabled = member.hp <= 0 || game.gameOver;
         btn.addEventListener('click', () => {
-            import('./actions.js').then(m => {
+            import('./actions.js?v=mvvmi850').then(m => {
                 m.useInventoryItem(game, key, logMessage, updateUI, broadcast);
             });
         });
@@ -237,17 +243,17 @@ function setupNetworkHandlers() {
     networkManager.addEventListener('message', event => {
         const { peerId, data } = event.detail;
         if (data.type === 'state') {
-            game = data.game;
+            game = data.game; game.turnEndMinMs = TURN_END_MIN_MS;
             if (data.yourMemberId) networkManager.setLocalMemberId(data.yourMemberId);
             updateUI();
         } else if (data.type === 'action') {
             handleRemoteAction(game, networkManager, { peerId, ...data }, logMessage, updateUI, broadcast);
         } else if (data.type === 'sync') {
-            game = data.game;
+            game = data.game; game.turnEndMinMs = TURN_END_MIN_MS;
             updateUI();
         } else if (data.type === 'actionConfirmed') {
             confirmLocalAction(data.actionId);
-            game = data.game;
+            game = data.game; game.turnEndMinMs = TURN_END_MIN_MS;
             updateUI();
         } else if (data.type === 'actionRejected') {
             rejectLocalAction(data.actionId);
@@ -284,7 +290,7 @@ function setupNetworkHandlers() {
         if (!networkManager.isHost) {
             sendLocalAction(networkManager, 'endTurn', {});
         } else {
-            import('./actions.js').then(m => m.finishTurn(game, logMessage, updateUI, broadcast));
+            import('./actions.js?v=mvvmi850').then(m => m.finishTurn(game, logMessage, updateUI, broadcast));
         }
     });
 }
@@ -451,7 +457,11 @@ function bindGameUI() {
     }
     document.getElementById('add-member-btn')?.addEventListener('click', () => {
         const classKey = document.getElementById('add-member-class')?.value || Object.keys(CLASSES)[0];
-        createPartyMember(game, `Adventurer ${game.party.length + 1}`, classKey);
+        const added = createPartyMember(game, `Adventurer ${game.party.length + 1}`, classKey);
+        if (added) {
+            placeNewMember(game, added);
+            logMessage(`${added.name} the ${added.className} joins the party.`, added);
+        }
         refreshPartySetupMap();
         updateUI();
     });
@@ -481,11 +491,11 @@ function bindGameUI() {
         setStartingPoints(event.target);
     });
     document.getElementById('difficulty-select')?.addEventListener('change', event => {
-        import('./actions.js').then(m => m.setGameDifficulty(game, event.target.value, logMessage));
+        import('./actions.js?v=mvvmi850').then(m => m.setGameDifficulty(game, event.target.value, logMessage));
         updateUI();
     });
     document.getElementById('formation-select')?.addEventListener('change', event => {
-        import('./actions.js').then(m => m.setFormation(game, event.target.value, logMessage));
+        import('./actions.js?v=mvvmi850').then(m => m.setFormation(game, event.target.value, logMessage));
         updateUI();
     });
     document.getElementById('resume-button')?.addEventListener('click', () => {
@@ -532,17 +542,22 @@ function bindGameUI() {
             document.getElementById('save-status').textContent = 'Select a save slot to load.';
             return;
         }
+        const exists = Object.hasOwn(listSaveSlots(), slotName);
         const stored = loadSlot(slotName);
         if (!stored) {
-            document.getElementById('save-status').textContent = `No save found in "${slotName}".`;
+            document.getElementById('save-status').textContent = exists
+                ? `Save "${slotName}" is damaged or from an incompatible version and could not be loaded.`
+                : `No save found in "${slotName}".`;
             return;
         }
         if (!confirm(`Load slot "${slotName}"? This will replace your current game.`)) return;
         game = stored.game;
+        game.turnEndMinMs = TURN_END_MIN_MS;
         gameLog = stored.log;
         logMessage = createLogger(gameLog, appendLogRecord);
         renderSavedLog();
         updateUI();
+        document.getElementById('save-status').textContent = `Loaded slot "${slotName}".`;
         document.getElementById('escape-menu').close();
     });
     document.getElementById('delete-save-slot-button')?.addEventListener('click', () => {
@@ -557,7 +572,7 @@ function bindGameUI() {
     document.getElementById('descend-button')?.addEventListener('click', () => {
         const member = activeMember(game);
         if (member) {
-            import('./actions.js').then(m => {
+            import('./actions.js?v=mvvmi850').then(m => {
                 m.descendFloor(game, member, logMessage);
                 updateUI();
             });
@@ -751,8 +766,8 @@ function refreshPartySetupMap() {
     // placeholder for any party-change map adjustments
 }
 
-import { movementAllowance } from './party.js';
-import { removePartyMember } from './party.js';
+import { movementAllowance } from './party.js?v=mvvmi850';
+import { removePartyMember } from './party.js?v=mvvmi850';
 
 function startFloatingTextLoop() {
     let last = performance.now();
@@ -766,10 +781,10 @@ function startFloatingTextLoop() {
     requestAnimationFrame(frame);
 }
 
-import { initAudio, playSound } from './audio.js';
-import { DICE, rollDice, onGameRoll } from './dice.js';
-import { castAbility } from './actions.js';
-import { ABILITIES, ensureAbilityState, spellCharges } from './abilities.js';
+import { initAudio, playSound } from './audio.js?v=mvvmi850';
+import { DICE, rollDice, onGameRoll } from './dice.js?v=mvvmi850';
+import { castAbility } from './actions.js?v=mvvmi850';
+import { ABILITIES, ensureAbilityState, spellCharges } from './abilities.js?v=mvvmi850';
 
 function bindAudioControls() {
     initAudio();
@@ -809,7 +824,7 @@ export function updateAbilityUI(game) {
     const spellBtn = document.getElementById('ability-spell-btn');
     const powerBtn = document.getElementById('ability-power-btn');
     const attackBtn = document.getElementById('ability-attack-btn');
-    const canAct = member.hp > 0 && !game.gameOver && game.hasStarted !== false;
+    const canAct = member.hp > 0 && !game.gameOver && game.hasStarted !== false && !game.turnEnding;
     if (attackBtn) attackBtn.disabled = !canAct;
     if (spellBtn) spellBtn.disabled = !canAct || member.spellChargesLeft < 1;
     if (powerBtn) powerBtn.disabled = !canAct || member.powerCooldown > 0;

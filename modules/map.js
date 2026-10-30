@@ -10,10 +10,10 @@ import {
     BIOMES,
     BOSSES,
     ITEMS
-} from './config.js';
-import { positionKey, shuffle, deepClone } from './utils.js';
-import { activeMember } from './state.js';
-import { setMovementAllowance, getDifficultySettings } from './party.js';
+} from './config.js?v=mvvmi850';
+import { positionKey, shuffle, deepClone } from './utils.js?v=mvvmi850';
+import { activeMember } from './state.js?v=mvvmi850';
+import { setMovementAllowance, getDifficultySettings } from './party.js?v=mvvmi850';
 
 export function mapDimensionsForLevel(dungeonLevel) {
     const dangerTier = Math.floor((dungeonLevel - 1) / 5);
@@ -166,6 +166,34 @@ function findSpawnInFirstRoom(game, rooms) {
     return { x: 1, y: 1 };
 }
 
+// Place a member who has no position yet (e.g. added with "+ Add Player" after
+// the floor was generated) on a free floor tile next to the party.
+export function placeNewMember(game, newMember) {
+    if (!newMember || newMember.position) return;
+    const anchor = activeMember(game)?.position
+        || game.party.find(m => m !== newMember && m.position)?.position;
+    newMember.dungeonLevel = activeMember(game)?.dungeonLevel || 1;
+    if (!anchor) return;
+    const occupied = tile => game.party.some(o => o !== newMember && o.position?.x === tile.x && o.position?.y === tile.y);
+    for (let radius = 1; radius <= 8; radius++) {
+        for (let dy = -radius; dy <= radius; dy++) {
+            for (let dx = -radius; dx <= radius; dx++) {
+                const tile = { x: anchor.x + dx, y: anchor.y + dy };
+                if (game.map[tile.y]?.[tile.x] === '.' && !occupied(tile)) {
+                    newMember.position = tile;
+                    newMember.floorPositions = newMember.floorPositions || {};
+                    newMember.floorPositions[newMember.dungeonLevel] = { ...tile };
+                    updateExplored(game, newMember);
+                    return;
+                }
+            }
+        }
+    }
+    newMember.position = { ...anchor };
+    newMember.floorPositions = newMember.floorPositions || {};
+    newMember.floorPositions[newMember.dungeonLevel] = { ...anchor };
+}
+
 function spawnParty(game, member, rooms) {
     const spawnRoom = rooms[0];
     const spawnTiles = [];
@@ -281,14 +309,54 @@ function placeInteractiveTerrain(game, member, rooms) {
         game.map[y][x] = '+';
         game.doors[positionKey(x, y)] = { open: false, x, y };
     }
-    for (let i = 0; i < chasmCount && tileIndex < openTiles.length; i++) {
+    // Chasms and water block movement. Only place them where every floor tile
+    // stays reachable, so a 1-wide corridor can never be cut off (that used to
+    // strand stairs and monsters behind impassable terrain).
+    let placedChasms = 0;
+    let placedWater = 0;
+    while ((placedChasms < chasmCount || placedWater < waterCount) && tileIndex < openTiles.length) {
         const { x, y } = openTiles[tileIndex++];
-        game.map[y][x] = '≡';
+        if (game.map[y][x] !== '.') continue;
+        const char = placedChasms < chasmCount ? '≡' : '~';
+        game.map[y][x] = char;
+        if (floorStaysConnected(game)) {
+            if (char === '≡') placedChasms++; else placedWater++;
+        } else {
+            game.map[y][x] = '.';
+        }
     }
-    for (let i = 0; i < waterCount && tileIndex < openTiles.length; i++) {
-        const { x, y } = openTiles[tileIndex++];
-        game.map[y][x] = '~';
+}
+
+// True when every passable tile can still be reached from any other passable tile.
+function floorStaysConnected(game) {
+    const passable = (x, y) => {
+        const c = game.map[y]?.[x];
+        return c !== undefined && c !== '#' && c !== '▓' && c !== '≡' && c !== '~';
+    };
+    let start = null;
+    let total = 0;
+    for (let y = 1; y < game.mapHeight - 1; y++) {
+        for (let x = 1; x < game.mapWidth - 1; x++) {
+            if (passable(x, y)) {
+                total++;
+                if (!start) start = { x, y };
+            }
+        }
     }
+    if (!start) return true;
+    const seen = new Set([positionKey(start.x, start.y)]);
+    const queue = [start];
+    while (queue.length) {
+        const cur = queue.pop();
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+            const nx = cur.x + dx, ny = cur.y + dy;
+            const key = positionKey(nx, ny);
+            if (seen.has(key) || !passable(nx, ny)) continue;
+            seen.add(key);
+            queue.push({ x: nx, y: ny });
+        }
+    }
+    return seen.size === total;
 }
 
 function placeExits(game, rooms) {
@@ -508,4 +576,4 @@ export function setPartyFormation(game, formationName) {
     game.formationOffsets = formations[game.formation] || formations.cluster;
 }
 
-import { ENEMIES, MAX_ENEMY_SCALE_LEVEL, MAX_ENEMY_ATTACK_BONUS } from './config.js';
+import { ENEMIES, MAX_ENEMY_SCALE_LEVEL, MAX_ENEMY_ATTACK_BONUS } from './config.js?v=mvvmi850';

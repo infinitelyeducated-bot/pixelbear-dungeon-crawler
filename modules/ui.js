@@ -1,11 +1,11 @@
-import { MAX_PARTY_SIZE, CLASSES, MAX_CHARACTER_LEVEL, PLAYER_COLORS, PLAYER_MARKERS, BIOMES } from './config.js';
-import { activeMember } from './state.js';
-import { adjacentDeadPartyMembers, updateDerivedStats, setMovementAllowance, experienceRequired } from './party.js';
-import { positionKey } from './utils.js';
-import { nearestAttackTarget } from './combat.js';
-import { isWalkable, updateExplored, getBiome, getItemAt, isShrineAt } from './map.js';
-import { pathDistanceWithin } from './pathfinding.js';
-import { hasStatusEffect } from './party.js';
+import { MAX_PARTY_SIZE, CLASSES, MAX_CHARACTER_LEVEL, PLAYER_COLORS, PLAYER_MARKERS, BIOMES } from './config.js?v=mvvmi850';
+import { activeMember } from './state.js?v=mvvmi850';
+import { adjacentDeadPartyMembers, updateDerivedStats, setMovementAllowance, experienceRequired } from './party.js?v=mvvmi850';
+import { positionKey } from './utils.js?v=mvvmi850';
+import { nearestAttackTarget } from './combat.js?v=mvvmi850';
+import { isWalkable, updateExplored, getBiome, getItemAt, isShrineAt } from './map.js?v=mvvmi850';
+import { pathDistanceWithin } from './pathfinding.js?v=mvvmi850';
+import { hasStatusEffect } from './party.js?v=mvvmi850';
 
 const CLASS_AVATARS = {
     fighter: '⚔',
@@ -309,7 +309,7 @@ export function setActionAvailability(id, available, active = false) {
 
 export function updateActionButtons(game) {
     const member = activeMember(game);
-    const canAct = Boolean(member && member.hp > 0 && !game.gameOver);
+    const canAct = Boolean(member && member.hp > 0 && !game.gameOver && !game.turnEnding);
     for (const direction of ['up', 'left', 'down', 'right']) {
         setActionAvailability(`move-${direction}`, canAct && canMove(game, member, direction));
     }
