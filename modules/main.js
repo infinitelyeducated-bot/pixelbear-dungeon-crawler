@@ -196,6 +196,8 @@ function setupNetworkHandlers() {
             }
             networkManager.broadcast({ type: 'sync', game });
         }
+        renderLobbyRoster();
+        checkStartGameEnabled();
     });
     networkManager.addEventListener('peerDisconnected', event => {
         const disconnectedPeerId = event.detail.peerId;
@@ -205,7 +207,32 @@ function setupNetworkHandlers() {
             logMessage(`${member.name} is no longer controlled by a remote player (peer ${disconnectedPeerId} disconnected).`, null, 'Network');
         }
         logMessage(`Peer ${disconnectedPeerId} disconnected.`, null, 'Network');
+        renderLobbyRoster();
+        checkStartGameEnabled();
     });
+    function checkStartGameEnabled() {
+        const startGameButton = document.getElementById('start-game-button');
+        if (!networkManager?.isHost || !startGameButton) return;
+        const peers = [networkManager.peerId, ...networkManager.connections.keys()];
+        const allReady = peers.length > 1 && peers.every(peerId => networkManager.readyPeers.has(peerId));
+        startGameButton.disabled = !allReady;
+        startGameButton.style.opacity = allReady ? '1' : '0.5';
+    }
+
+    networkManager.addEventListener('readyChanged', event => {
+        const { peerId, ready } = event.detail;
+        if (networkManager.isHost) {
+            logMessage(`Peer ${peerId} is ${ready ? 'ready' : 'not ready'}.`, null, 'Network');
+        }
+        renderLobbyRoster();
+        checkStartGameEnabled();
+    });
+
+    networkManager.addEventListener('startGame', () => {
+        logMessage('Game started!', null, 'Network');
+        document.getElementById('lobby-section').style.display = 'none';
+    });
+
     networkManager.addEventListener('message', event => {
         const { peerId, data } = event.detail;
         if (data.type === 'state') {
@@ -226,6 +253,24 @@ function setupNetworkHandlers() {
             logMessage(`Action rejected: ${data.reason}`, activeMember(game));
         } else if (data.type === 'chat') {
             appendChatMessage(data);
+        } else if (data.type === 'ready') {
+            if (networkManager.isHost) networkManager.handleReady(data.peerId, data.ready);
+            renderLobbyRoster();
+            checkStartGameEnabled();
+        } else if (data.type === 'lobbyState') {
+            networkManager.readyPeers = new Set(data.readyPeers);
+            networkManager.lobbyStarted = data.lobbyStarted;
+            renderLobbyRoster();
+            checkStartGameEnabled();
+            if (networkManager.lobbyStarted) {
+                document.getElementById('lobby-section').style.display = 'none';
+            }
+        } else if (data.type === 'startGame') {
+            document.getElementById('lobby-section').style.display = 'none';
+        } else if (data.type === 'lobbyReset') {
+            networkManager.readyPeers.clear();
+            networkManager.lobbyStarted = false;
+            renderLobbyRoster();
         }
     });
     networkManager.addEventListener('turnTick', event => {
@@ -288,6 +333,27 @@ function assignPeerToMember(peerId, reconnect = false) {
 
 function bindNetworkUI() {
     const dialog = document.getElementById('network-dialog');
+    const lobbySection = document.getElementById('lobby-section');
+    const lobbyRoster = document.getElementById('lobby-roster');
+    const readyButton = document.getElementById('ready-button');
+    const startGameButton = document.getElementById('start-game-button');
+
+    function renderLobbyRoster() {
+        if (!networkManager || !lobbyRoster) return;
+        const peers = [networkManager.peerId];
+        for (const peerId of networkManager.connections.keys()) {
+            if (!peers.includes(peerId)) peers.push(peerId);
+        }
+        lobbyRoster.replaceChildren();
+        for (const peerId of peers) {
+            const ready = networkManager.readyPeers.has(peerId);
+            const li = document.createElement('li');
+            li.textContent = `${peerId} ${peerId === networkManager.peerId ? '(you)' : ''}: ${ready ? 'Ready' : 'Not Ready'}`;
+            li.style.color = ready ? '#76ff03' : '#ff5252';
+            lobbyRoster.appendChild(li);
+        }
+    }
+
     document.getElementById('network-button')?.addEventListener('click', () => dialog?.showModal());
     document.getElementById('network-cancel')?.addEventListener('click', () => dialog?.close());
     document.getElementById('host-button')?.addEventListener('click', async () => {
@@ -299,6 +365,14 @@ function bindNetworkUI() {
             const id = await networkManager.startHost(url, { hostAsGm });
             document.getElementById('host-id-display').textContent = id;
             document.getElementById('network-mode').textContent = hostAsGm ? 'Hosting as GM' : 'Hosting';
+            if (lobbySection) lobbySection.style.display = 'block';
+            if (readyButton) readyButton.style.display = 'inline-block';
+            if (startGameButton) {
+                startGameButton.style.display = networkManager.isHost ? 'inline-block' : 'none';
+                startGameButton.disabled = true;
+                startGameButton.style.opacity = '0.5';
+            }
+            renderLobbyRoster();
         } catch (error) {
             alert('Could not start host: ' + error.message);
         }
@@ -312,9 +386,27 @@ function bindNetworkUI() {
         try {
             await networkManager.joinHost(hostId, url);
             document.getElementById('network-mode').textContent = `Client of ${hostId}`;
+            if (lobbySection) lobbySection.style.display = 'block';
+            if (readyButton) readyButton.style.display = 'inline-block';
+            if (startGameButton) startGameButton.style.display = 'none';
+            renderLobbyRoster();
         } catch (error) {
             alert('Could not join host: ' + error.message);
         }
+    });
+
+    readyButton?.addEventListener('click', () => {
+        if (!networkManager) return;
+        const nextReady = !networkManager.readyPeers.has(networkManager.peerId);
+        networkManager.setReady(nextReady);
+        readyButton.textContent = nextReady ? 'Not Ready' : 'Ready';
+        readyButton.style.background = nextReady ? '#ff5252' : '#2196f3';
+    });
+
+    startGameButton?.addEventListener('click', () => {
+        if (!networkManager?.isHost) return;
+        networkManager.startGame();
+        lobbySection.style.display = 'none';
     });
 
     const chatForm = document.getElementById('chat-form');

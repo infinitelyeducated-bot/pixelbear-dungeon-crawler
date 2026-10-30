@@ -1435,6 +1435,14 @@
         </div>
         <p id="host-id-display" style="color:#ffcc00; font-size:0.85rem; min-height:1.2em;"></p>
         <p id="network-mode" style="color:#b9b3a3; font-size:0.75rem; min-height:1.2em;"></p>
+        <div id="lobby-section" style="display:none; margin-top:12px; padding:12px; border:1px solid #4a4a6a; border-radius:6px; background:#12121a;">
+            <h3 style="color:#ffcc00; margin:0 0 8px; font-size:0.85rem;">Pre-Game Lobby</h3>
+            <ul id="lobby-roster" style="list-style:none; padding:0; margin:0 0 10px; font-size:0.8rem; line-height:1.6;"></ul>
+            <div id="lobby-actions" style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button id="ready-button" type="button" style="background:#2196f3; color:#fff; flex:1; min-width:90px;">Ready</button>
+                <button id="start-game-button" type="button" style="display:none; background:#4caf50; color:#fff; flex:1; min-width:90px;">Start Game</button>
+            </div>
+        </div>
         <div style="margin-top:12px; padding-top:12px; border-top:1px solid #4a4a6a;">
             <label style="display:flex; align-items:center; gap:8px; font-size:0.8rem; margin-bottom:8px;">
                 <input id="turn-timer-toggle" type="checkbox"> Turn timer

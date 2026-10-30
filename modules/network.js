@@ -19,6 +19,8 @@ export class NetworkManager extends EventTarget {
         this.maxReconnectAttempts = 5;
         this.lastKnownAssignments = new Map();
         this.chatLog = [];
+        this.readyPeers = new Set();
+        this.lobbyStarted = false;
         this.turnTimer = null;
         this.turnTimeLeft = 0;
         this.turnTimerDuration = 0;
@@ -151,6 +153,7 @@ export class NetworkManager extends EventTarget {
         channel.onopen = () => {
             this.dispatchEvent(new CustomEvent('peerConnected', { detail: { peerId, channel, reconnect } }));
             this.dispatchEvent(new CustomEvent('status', { detail: `Peer ${peerId} connected.` }));
+            this.sendTo(peerId, { type: 'lobbyState', readyPeers: Array.from(this.readyPeers), lobbyStarted: this.lobbyStarted });
         };
         channel.onclose = () => {
             this.dispatchEvent(new CustomEvent('peerDisconnected', { detail: { peerId } }));
@@ -197,12 +200,42 @@ export class NetworkManager extends EventTarget {
     sendChat(text) {
         const message = { type: 'chat', sender: this.peerId, text, timestamp: Date.now() };
         this.chatLog.push(message);
-        if (this.isHost) {
-            this.broadcast(message);
-        } else {
-            this.broadcast(message);
-        }
+        this.broadcast(message);
         return message;
+    }
+
+    setReady(ready) {
+        const message = { type: 'ready', peerId: this.peerId, ready };
+        if (this.isHost) {
+            if (ready) this.readyPeers.add(this.peerId);
+            else this.readyPeers.delete(this.peerId);
+            this.broadcast(message);
+            this.dispatchEvent(new CustomEvent('readyChanged', { detail: { peerId: this.peerId, ready, readyPeers: Array.from(this.readyPeers) } }));
+        } else {
+            this.sendTo(this.hostId, message);
+        }
+    }
+
+    handleReady(peerId, ready) {
+        if (!this.isHost) return;
+        if (ready) this.readyPeers.add(peerId);
+        else this.readyPeers.delete(peerId);
+        this.broadcast({ type: 'ready', peerId, ready });
+        this.dispatchEvent(new CustomEvent('readyChanged', { detail: { peerId, ready, readyPeers: Array.from(this.readyPeers) } }));
+    }
+
+    startGame() {
+        if (!this.isHost) return;
+        this.lobbyStarted = true;
+        this.broadcast({ type: 'startGame' });
+        this.dispatchEvent(new CustomEvent('startGame', { detail: {} }));
+    }
+
+    resetLobby() {
+        this.lobbyStarted = false;
+        this.readyPeers.clear();
+        this.broadcast({ type: 'lobbyReset' });
+        this.dispatchEvent(new CustomEvent('lobbyReset', { detail: {} }));
     }
 
     startTurnTimer(seconds) {
