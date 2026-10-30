@@ -108,13 +108,19 @@
             border-radius: 8px;
             background: #141421;
             font-size: 0.75rem;
-            max-height: 160px;
+            max-height: 180px;
             overflow-y: auto;
+        }
+
+        .party-load h4 {
+            color: #ffcc00;
+            margin: 8px 0 4px;
+            font-size: 0.8rem;
         }
 
         .main-stage {
             display: grid;
-            grid-template-columns: minmax(190px, 210px) minmax(0, 1fr) minmax(270px, 340px);
+            grid-template-columns: minmax(190px, 210px) minmax(0, 1fr) minmax(190px, 210px);
             align-items: start;
             gap: 8px;
             min-height: 0;
@@ -130,7 +136,9 @@
 
         .map-column {
             display: grid;
-            grid-template-rows: 1fr auto;
+            grid-template-rows: 1fr;
+            align-items: center;
+            justify-items: center;
             min-width: 0;
             min-height: 0;
         }
@@ -154,6 +162,8 @@
         .dungeon-map {
             text-align: center;
             position: relative;
+            max-width: 100%;
+            margin: 0 auto;
         }
 
         #level-title {
@@ -441,24 +451,24 @@
         .party-setup label {
             display: flex;
             flex-direction: column;
-            gap: 5px;
+            gap: 2px;
             color: #d6d0bf;
-            font-size: 0.85rem;
+            font-size: 0.78rem;
         }
 
         .party-setup input,
         .party-setup select {
             width: 100%;
-            padding: 7px;
+            padding: 5px;
             border: 1px solid #65657b;
             border-radius: 4px;
             background: #0a0a0a;
             color: #fff;
-            margin-top: 4px;
+            margin-top: 3px;
         }
 
         .party-setup label + label {
-            margin-top: 10px;
+            margin-top: 6px;
         }
 
         #inventory-section {
@@ -487,26 +497,19 @@
             cursor: not-allowed;
         }
 
-        .party-setup p {
-            margin-top: 8px;
-            color: #b9b3a3;
-            font-size: 0.75rem;
-            line-height: 1.4;
-        }
-
         .party-setup button,
         .sheet-party-actions button {
             width: 100%;
-            margin-top: 10px;
-            padding: 8px;
+            margin-top: 8px;
+            padding: 6px;
             border-radius: 5px;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
         }
 
         .sheet-party-actions {
             display: flex;
-            gap: 10px;
-            margin-top: 12px;
+            gap: 8px;
+            margin-top: 10px;
         }
 
         .sheet-grid {
@@ -1191,34 +1194,7 @@
                             <button type="submit">Send</button>
                         </form>
                     </section>
-                    <section id="minimap-section" aria-label="Minimap">
-                        <h2 class="panel-title" style="font-size:0.85rem;">MINIMAP</h2>
-                        <div id="minimap" class="minimap"></div>
-                    </section>
-                </section>
-                <section class="map-column" aria-label="Dungeon map">
-                    <div id="dungeon-map" class="dungeon-map">
-                        <div id="dungeon-map-content" class="dungeon-map-content"></div>
-                    </div>
-                    <div id="floating-text-layer" class="floating-text-layer"></div>
-                </section>
-                <section class="right-column" aria-label="Player options and log">
-                    <section class="action-legend" aria-label="Player actions">
-                        <h2>PLAYER OPTIONS</h2>
-                        <button id="move-up" class="action-button" aria-label="Move up"><span class="action-icon icon-move">↑</span> Up<span class="action-key">↑ / W</span></button>
-                        <button id="move-left" class="action-button" aria-label="Move left"><span class="action-icon icon-move">←</span> Left<span class="action-key">← / A</span></button>
-                        <button id="move-down" class="action-button" aria-label="Move down"><span class="action-icon icon-move">↓</span> Down<span class="action-key">↓ / S</span></button>
-                        <button id="move-right" class="action-button" aria-label="Move right"><span class="action-icon icon-move">→</span> Right<span class="action-key">→ / D</span></button>
-                        <button id="attack-btn" class="action-button" aria-label="Attack"><span class="action-icon icon-attack">⚔</span> Attack<span class="action-key">F</span></button>
-                        <button id="rest-btn" class="action-button" aria-label="Rest and heal"><span class="action-icon icon-rest">✚</span> Rest<span class="action-key">R</span></button>
-                        <button id="guard-btn" class="action-button" aria-label="Stand guard"><span class="action-icon icon-guard">▣</span> Guard<span class="action-key">G</span></button>
-                        <button id="end-turn-btn" class="action-button" aria-label="End turn"><span class="action-icon icon-end">≫</span> End Turn<span class="action-key">E</span></button>
-                    </section>
-                    <section class="game-log-section" aria-label="Game events">
-                        <h2 class="panel-title" style="font-size:0.85rem;">ADVENTURE LOG</h2>
-                        <div id="game-log" class="log-panel"></div>
-                    </section>
-                    <section class="party-setup">
+                    <section class="party-setup" aria-label="Party setup">
                         <h3 style="color:#ffcc00; margin-bottom:6px;">PARTY SETUP</h3>
                         <label for="gm-starting-points">GM starting points per player
                             <input id="gm-starting-points" type="number" min="0" max="544" step="1" placeholder="Enter points">
@@ -1239,7 +1215,6 @@
                                 <option value="spread">Spread</option>
                             </select>
                         </label>
-                        <p>DM distributes points per character before the first move. Unused points are forfeited on the first move. On level, +2 to invested stats and +0.5 to all others.</p>
                         <div class="sheet-party-actions">
                             <button id="add-member-btn" style="background:#4caf50;">+ Add Player</button>
                             <button id="remove-member-btn" style="background:#f44336;" disabled>– Remove Active</button>
@@ -1248,6 +1223,33 @@
                             <button id="network-button" type="button" style="background:#2196f3; color:#fff;">Network</button>
                             <span id="network-status-right" class="network-status">Offline</span>
                         </div>
+                    </section>
+                </section>
+                <section class="map-column" aria-label="Dungeon map">
+                    <div id="dungeon-map" class="dungeon-map">
+                        <div id="dungeon-map-content" class="dungeon-map-content"></div>
+                    </div>
+                    <div id="floating-text-layer" class="floating-text-layer"></div>
+                </section>
+                <section class="right-column" aria-label="Player options and log">
+                    <section id="minimap-section" aria-label="Minimap">
+                        <h2 class="panel-title" style="font-size:0.85rem;">MINIMAP</h2>
+                        <div id="minimap" class="minimap"></div>
+                    </section>
+                    <section class="action-legend" aria-label="Player actions">
+                        <h2>PLAYER OPTIONS</h2>
+                        <button id="move-up" class="action-button" aria-label="Move up"><span class="action-icon icon-move">↑</span> Up<span class="action-key">↑ / W</span></button>
+                        <button id="move-left" class="action-button" aria-label="Move left"><span class="action-icon icon-move">←</span> Left<span class="action-key">← / A</span></button>
+                        <button id="move-down" class="action-button" aria-label="Move down"><span class="action-icon icon-move">↓</span> Down<span class="action-key">↓ / S</span></button>
+                        <button id="move-right" class="action-button" aria-label="Move right"><span class="action-icon icon-move">→</span> Right<span class="action-key">→ / D</span></button>
+                        <button id="attack-btn" class="action-button" aria-label="Attack"><span class="action-icon icon-attack">⚔</span> Attack<span class="action-key">F</span></button>
+                        <button id="rest-btn" class="action-button" aria-label="Rest and heal"><span class="action-icon icon-rest">✚</span> Rest<span class="action-key">R</span></button>
+                        <button id="guard-btn" class="action-button" aria-label="Stand guard"><span class="action-icon icon-guard">▣</span> Guard<span class="action-key">G</span></button>
+                        <button id="end-turn-btn" class="action-button" aria-label="End turn"><span class="action-icon icon-end">≫</span> End Turn<span class="action-key">E</span></button>
+                    </section>
+                    <section class="game-log-section" aria-label="Game events">
+                        <h2 class="panel-title" style="font-size:0.85rem;">ADVENTURE LOG</h2>
+                        <div id="game-log" class="log-panel"></div>
                     </section>
                 </section>
             </div>
