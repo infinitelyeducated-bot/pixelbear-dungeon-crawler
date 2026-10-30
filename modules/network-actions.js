@@ -1,5 +1,5 @@
 import { activeMember } from './state.js';
-import { move, attack, standGuard, rest, finishTurn } from './actions.js';
+import { move, attack, standGuard, rest, finishTurn, castAbility } from './actions.js';
 import { deepClone } from './utils.js';
 
 const pendingActions = new Map();
@@ -43,6 +43,9 @@ function executeAction(game, action, args, logMessage, updateUI, broadcast) {
             return true;
         case 'endTurn':
             finishTurn(game, logMessage, updateUI, broadcast);
+            return true;
+        case 'ability':
+            castAbility(game, args.slot, logMessage, updateUI, broadcast);
             return true;
         default:
             return false;

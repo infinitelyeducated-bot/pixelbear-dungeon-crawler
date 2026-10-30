@@ -156,7 +156,7 @@
         .side-column {
             grid-area: side;
             display: grid;
-            grid-template-rows: auto 1fr;
+            grid-template-rows: auto auto 1fr;
             gap: 10px;
             min-width: 0;
             min-height: 0;
@@ -425,6 +425,88 @@
             border-color: #ffe082;
             background: #fff3c4;
         }
+
+        .ability-button {
+            background: #e8e0ff;
+            border-color: #b9a8f5;
+            color: #241a3a;
+        }
+
+        .ability-meta {
+            grid-column: 1 / -1;
+            text-align: center;
+            color: #b9b3a3;
+            font-size: 0.68rem;
+            padding-top: 2px;
+        }
+
+        .dice-panel {
+            border: 2px solid #4a4a6a;
+            border-radius: 8px;
+            background: #10101b;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .dice-controls {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .dice-controls select,
+        .dice-controls input {
+            padding: 4px;
+            border: 1px solid #65657b;
+            border-radius: 4px;
+            background: #0a0a0a;
+            color: #fff;
+            font-size: 0.72rem;
+            min-width: 0;
+        }
+
+        .dice-controls input { width: 44px; }
+
+        .dice-controls button {
+            padding: 4px 8px;
+            border: 1px solid #d4a73a;
+            border-radius: 4px;
+            background: #2a2410;
+            color: #ffcc00;
+            font-size: 0.72rem;
+            cursor: pointer;
+        }
+
+        .dice-controls button:hover { background: #d4a73a; color: #1a1a00; }
+
+        .dice-total {
+            margin-left: auto;
+            color: #ffcc00;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .dice-log {
+            flex: 1 1 auto;
+            min-height: 50px;
+            max-height: 110px;
+            overflow-y: auto;
+            background: #0a0a0a;
+            border: 1px solid #2a2a3a;
+            border-radius: 4px;
+            padding: 4px 6px;
+            font-size: 0.66rem;
+            line-height: 1.5;
+            color: #d6d0bf;
+        }
+
+        .dice-log .dice-crit { color: #66ff66; }
+        .dice-log .dice-fail { color: #ff6666; }
         
         button {
             background: linear-gradient(to bottom, #ffcc00, #ff9800);
@@ -761,10 +843,12 @@
             margin-top: 8px;
             padding-top: 6px;
             border-top: 1px solid #2a2a3a;
+            text-align: center;
         }
 
         .sheet-remove-btn {
-            width: 100%;
+            width: 70%;
+            margin: 0 auto;
             padding: 4px 0;
             border: 1px solid #f44336;
             border-radius: 4px;
@@ -1487,6 +1571,25 @@
                         <button id="rest-btn" class="action-button" aria-label="Rest and heal"><span class="action-icon icon-rest">✚</span> Rest<span class="action-key">R</span></button>
                         <button id="guard-btn" class="action-button" aria-label="Stand guard"><span class="action-icon icon-guard">▣</span> Guard<span class="action-key">G</span></button>
                         <button id="end-turn-btn" class="action-button" aria-label="End turn"><span class="action-icon icon-end">≫</span> End Turn<span class="action-key">E</span></button>
+                        <button id="ability-attack-btn" class="action-button ability-button" aria-label="Class attack"><span class="action-icon icon-attack">🗡</span> <span id="ability-attack-name">Strike</span><span class="action-key">1</span></button>
+                        <button id="ability-spell-btn" class="action-button ability-button" aria-label="Cast spell"><span class="action-icon icon-spell">✨</span> <span id="ability-spell-name">Spell</span><span class="action-key">2</span></button>
+                        <button id="ability-power-btn" class="action-button ability-button" aria-label="Power attack"><span class="action-icon icon-power">💥</span> <span id="ability-power-name">Power</span><span class="action-key">3</span></button>
+                        <div id="ability-meta" class="ability-meta">Charges: – | Power: ready</div>
+                    </section>
+                    <section id="dice-panel" class="dice-panel" aria-label="Dice roller">
+                        <h2 class="panel-title" style="font-size:0.85rem;">DICE ROLLER</h2>
+                        <div class="dice-controls">
+                            <select id="dice-count"></select>
+                            <select id="dice-type"><option>d4</option><option>d6</option><option>d8</option><option>d10</option><option>d12</option><option selected>d20</option><option>d%</option></select>
+                            <input id="dice-mod" type="number" value="0" step="1" title="Modifier" aria-label="Modifier">
+                            <button id="dice-roll-btn" type="button">🎲 Roll</button>
+                        </div>
+                        <div class="dice-controls">
+                            <button id="dice-adv-btn" type="button" title="Advantage: roll 2d20, keep highest">Adv</button>
+                            <button id="dice-dis-btn" type="button" title="Disadvantage: roll 2d20, keep lowest">Dis</button>
+                            <span id="dice-total" class="dice-total">–</span>
+                        </div>
+                        <div id="dice-log" class="dice-log" aria-live="polite"></div>
                     </section>
                 </section>
                 <section id="chat-section" aria-label="Chat">

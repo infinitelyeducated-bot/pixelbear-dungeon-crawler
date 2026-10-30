@@ -57,6 +57,7 @@ export function updateUI() {
     levelTitle.textContent = `${biome ? biome.name + ' — ' : ''}DUNGEON LEVEL ${activeMember(game)?.dungeonLevel || 1}`;
     updateActionButtons(game);
     updateMobileButtons(game);
+    updateAbilityUI(game);
     renderInventoryPanel(game);
     renderCharacterSheets(game, document.getElementById('character-sheet-list'));
     layoutManager.refresh();
@@ -695,9 +696,114 @@ function startFloatingTextLoop() {
 }
 
 import { initAudio, playSound } from './audio.js';
+import { DICE, rollDice, onGameRoll } from './dice.js';
+import { castAbility } from './actions.js';
+import { ABILITIES, ensureAbilityState, spellCharges } from './abilities.js';
 
 function bindAudioControls() {
     initAudio();
+}
+
+function localOrSendAbility(slot) {
+    if (networkManager?.mode && !networkManager.isHost) {
+        sendLocalAction(networkManager, 'ability', { slot });
+    } else {
+        castAbility(game, slot, logMessage, updateUI, broadcast);
+    }
+}
+
+function bindAbilityUI() {
+    document.getElementById('ability-attack-btn')?.addEventListener('click', () => localOrSendAbility('attack'));
+    document.getElementById('ability-spell-btn')?.addEventListener('click', () => localOrSendAbility('spell'));
+    document.getElementById('ability-power-btn')?.addEventListener('click', () => localOrSendAbility('power'));
+    document.addEventListener('keydown', event => {
+        if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement || event.target instanceof HTMLTextAreaElement) return;
+        if (event.key === '1') localOrSendAbility('attack');
+        if (event.key === '2') localOrSendAbility('spell');
+        if (event.key === '3') localOrSendAbility('power');
+    });
+}
+
+export function updateAbilityUI(game) {
+    const member = activeMember(game);
+    if (!member) return;
+    const kit = ABILITIES[member.classKey];
+    if (!kit) return;
+    ensureAbilityState(member);
+    const names = { attack: 'ability-attack-name', spell: 'ability-spell-name', power: 'ability-power-name' };
+    for (const [slot, id] of Object.entries(names)) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = kit[slot].name;
+    }
+    const spellBtn = document.getElementById('ability-spell-btn');
+    const powerBtn = document.getElementById('ability-power-btn');
+    const attackBtn = document.getElementById('ability-attack-btn');
+    const canAct = member.hp > 0 && !game.gameOver && game.hasStarted !== false;
+    if (attackBtn) attackBtn.disabled = !canAct;
+    if (spellBtn) spellBtn.disabled = !canAct || member.spellChargesLeft < 1;
+    if (powerBtn) powerBtn.disabled = !canAct || member.powerCooldown > 0;
+    const meta = document.getElementById('ability-meta');
+    if (meta) meta.textContent = `Charges: ${member.spellChargesLeft}/${spellCharges(member)} | Power: ${member.powerCooldown > 0 ? member.powerCooldown + ' turn(s)' : 'ready'}`;
+    for (const [slot, btnId] of [['attack', 'ability-attack-btn'], ['spell', 'ability-spell-btn'], ['power', 'ability-power-btn']]) {
+        const btn = document.getElementById(btnId);
+        if (btn) btn.title = kit[slot].description || `${kit[slot].name} (${kit[slot].dice[0]}d${kit[slot].dice[1]} + stat/level/item bonus)`;
+    }
+}
+
+function appendDiceLog(text, cls = '') {
+    const log = document.getElementById('dice-log');
+    if (!log) return;
+    const line = document.createElement('div');
+    if (cls) line.className = cls;
+    line.textContent = text;
+    log.appendChild(line);
+    while (log.children.length > 40) log.removeChild(log.firstChild);
+    log.scrollTop = log.scrollHeight;
+}
+
+function bindDicePanel() {
+    const countSel = document.getElementById('dice-count');
+    if (countSel) {
+        for (let i = 1; i <= 10; i++) {
+            const option = document.createElement('option');
+            option.textContent = String(i);
+            countSel.appendChild(option);
+        }
+    }
+    const doRoll = () => {
+        const count = Number(document.getElementById('dice-count')?.value || 1);
+        const type = document.getElementById('dice-type')?.value || 'd20';
+        const mod = Number(document.getElementById('dice-mod')?.value || 0);
+        const sides = DICE[type];
+        const result = rollDice(count, sides, mod);
+        const total = document.getElementById('dice-total');
+        if (total) total.textContent = String(result.total);
+        const crit = type === 'd20' && result.rolls.includes(20);
+        const fail = type === 'd20' && result.rolls.includes(1);
+        appendDiceLog(`You: ${count}${type} [${result.rolls.join(', ')}]${mod ? (mod > 0 ? ' +' : ' ') + mod : ''} = ${result.total}${crit ? ' CRIT!' : ''}${fail ? ' (nat 1)' : ''}`, crit ? 'dice-crit' : fail ? 'dice-fail' : '');
+        playSound('treasure');
+        logMessage(`rolls ${count}${type}${mod ? (mod > 0 ? '+' : '') + mod : ''}: [${result.rolls.join(', ')}] = ${result.total}${crit ? ' — natural 20!' : ''}${fail ? ' — natural 1!' : ''}`, activeMember(game));
+        if (networkManager?.mode) networkManager.broadcast({ type: 'chat', sender: networkManager.peerId, text: `\u{1F3B2} ${count}${type} = ${result.total}`, timestamp: Date.now() });
+    };
+    document.getElementById('dice-roll-btn')?.addEventListener('click', doRoll);
+    const advRoll = dir => {
+        const mod = Number(document.getElementById('dice-mod')?.value || 0);
+        const a = rollDice(1, 20, 0).total, b = rollDice(1, 20, 0).total;
+        const pick = dir > 0 ? Math.max(a, b) : Math.min(a, b);
+        const total = document.getElementById('dice-total');
+        if (total) total.textContent = String(pick + mod);
+        appendDiceLog(`You: ${dir > 0 ? 'Adv' : 'Dis'} d20 [${a} & ${b}] \u2192 ${pick + mod}`);
+        logMessage(`rolls ${dir > 0 ? 'advantage' : 'disadvantage'} d20 [${a} & ${b}] \u2192 ${pick + mod}.`, activeMember(game));
+    };
+    document.getElementById('dice-adv-btn')?.addEventListener('click', () => advRoll(1));
+    document.getElementById('dice-dis-btn')?.addEventListener('click', () => advRoll(-1));
+
+    // Game events (ability rolls) feed the dice log
+    onGameRoll(detail => {
+        appendDiceLog(`${detail.label}: ${detail.count}d${detail.sides} [${detail.rolls.join(', ')}]${detail.mod ? ' +' + detail.mod : ''} = ${detail.total}`);
+        const total = document.getElementById('dice-total');
+        if (total) total.textContent = String(detail.total);
+    });
 }
 
 function showErrorBoundary(error) {
@@ -724,6 +830,8 @@ window.addEventListener('DOMContentLoaded', () => {
         updateUI();
         bindInput(game, logMessage, updateUI, broadcast, networkManager);
         bindGameUI();
+        bindAbilityUI();
+        bindDicePanel();
         populateSaveSlotSelect();
         bindNetworkUI();
         bindAudioControls();

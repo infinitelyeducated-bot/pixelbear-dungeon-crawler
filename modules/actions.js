@@ -12,6 +12,23 @@ import {
 import { storeActiveFloor, loadMemberFloor, updateExplored, isWalkable, toggleDoor, getBiome, getItemAt, removeItemAt, isShrineAt, setPartyFormation } from './map.js';
 import { handleTrap, handleTreasure, attackMonster, enemyTurn, checkPartyDefeat, nearestAttackTarget, useItem, reviveAtShrine } from './combat.js';
 import { playSound } from './audio.js';
+import { useAbility, refreshAbilityTurn, restoreCharges } from './abilities.js';
+
+export function castAbility(game, slot, logMessage, updateUI, broadcast) {
+    const member = activeMember(game);
+    if (!member || member.hp <= 0 || game.gameOver) return;
+    if (hasStatusEffect(member, 'stun')) {
+        logMessage(`${member.name} is stunned and cannot act.`, member);
+        return;
+    }
+    playSound('attack');
+    const used = useAbility(game, member, slot, logMessage);
+    if (used) {
+        if (!game.gameOver) finishTurn(game, logMessage, updateUI, broadcast);
+    }
+    updateUI();
+    if (broadcast) broadcast({ type: 'sync', game });
+}
 
 export function move(game, direction, logMessage, updateUI, broadcast) {
     if (game.gameOver) return;
@@ -180,9 +197,11 @@ export function rest(game, logMessage, updateUI, broadcast) {
         const oldHp = member.hp;
         const healAmount = Math.max(1, Math.floor(member.maxHp * 0.3));
         member.hp = Math.min(member.maxHp, member.hp + healAmount);
-        logMessage(`rests and recovers ${member.hp - oldHp} HP.`, member);
+        restoreCharges(member);
+        logMessage(`rests, recovers ${member.hp - oldHp} HP, and restores spell charges.`, member);
     } else {
-        logMessage('is already at full health.', member);
+        restoreCharges(member);
+        logMessage('is already at full health; spell charges restored.', member);
     }
     finishTurn(game, logMessage, updateUI, broadcast);
     updateUI();
@@ -211,6 +230,7 @@ export async function finishTurn(game, logMessage, updateUI, broadcast) {
         game.activeMemberIndex = nextIndex;
         loadMemberFloor(game, nextMember);
         setMovementAllowance(nextMember);
+        refreshAbilityTurn(nextMember);
         nextMember.movesRemaining = Math.min(nextMember.movesPerTurn, nextMember.movesRemaining + carryOver);
         updateExplored(game, nextMember);
         logMessage(`begins their turn with ${nextMember.movesPerTurn} movement spaces.`, nextMember);
