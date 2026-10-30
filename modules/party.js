@@ -128,8 +128,10 @@ export function checkLevelUp(member, game, logMessage) {
 }
 
 export function removePartyMember(game, memberId, logMessage) {
-    if (game.hasStarted) {
-        logMessage('The party can only be changed before the first move.', activeMember(game));
+    const target = game.party.find(m => m.id === memberId);
+    if (!target) return false;
+    if (game.hasStarted && target.hp > 0) {
+        logMessage('Living characters can only be removed before the first move. Fallen characters can be removed any time.', activeMember(game));
         return false;
     }
     if (game.party.length <= 1) {

@@ -368,7 +368,7 @@ function buildCharacterSheet(game, member, index) {
     avatar.style.color = member.color;
 
     const heading = document.createElement('h3');
-    heading.innerHTML = `${member.marker} ${index + 1}. ${member.name}${member.hp <= 0 ? ' <span class="down-tag">(down)</span>' : ''}${member === activeMember(game) ? ' — ACTIVE' : ''}`;
+    heading.innerHTML = `${member.marker} ${index + 1}. ${member.name}${member.hp <= 0 ? ' <span class="down-tag">(down)</span>' : ''}`;
     heading.style.color = member.color;
 
     const title = document.createElement('div');
@@ -377,14 +377,20 @@ function buildCharacterSheet(game, member, index) {
     title.appendChild(heading);
     header.appendChild(title);
 
-    const removeBtn = document.createElement('button');
-    removeBtn.type = 'button';
-    removeBtn.className = 'sheet-remove-btn';
-    removeBtn.textContent = '×';
-    removeBtn.title = 'Remove this character';
-    removeBtn.dataset.removeMemberId = String(member.id);
-    removeBtn.disabled = game.hasStarted;
-    header.appendChild(removeBtn);
+    const levelBadge = document.createElement('span');
+    levelBadge.className = 'sheet-level-badge';
+    levelBadge.textContent = `Lv ${member.level}`;
+    levelBadge.title = `Character level ${member.level}`;
+    header.appendChild(levelBadge);
+
+    const subRow = document.createElement('div');
+    subRow.className = 'sheet-sub-row';
+    if (member === activeMember(game)) {
+        const activeTag = document.createElement('span');
+        activeTag.className = 'sheet-active-tag';
+        activeTag.textContent = 'ACTIVE';
+        subRow.appendChild(activeTag);
+    }
 
     const classPoints = document.createElement('div');
     classPoints.className = 'sheet-class-points';
@@ -407,7 +413,7 @@ function buildCharacterSheet(game, member, index) {
     remainingPoints.textContent = `${member.pendingAttributePoints} pt`;
     remainingPoints.title = 'Unspent attribution points';
     classPoints.append(classLabel, remainingPoints);
-    header.appendChild(classPoints);
+    subRow.appendChild(classPoints);
 
     const hpBar = document.createElement('div');
     hpBar.className = 'hp-bar';
@@ -445,7 +451,6 @@ function buildCharacterSheet(game, member, index) {
         stat('AC', member.armorClass),
         stat('Atk', member.attack),
         stat('Def', member.defense),
-        stat('Lv', member.level),
         stat('XP', `${member.xp}/${experienceRequired(member, game.party.length)}`),
         stat('Mov', `${member.movesRemaining}/${member.movesPerTurn}`),
         stat('DLv', member.dungeonLevel),
@@ -486,7 +491,20 @@ function buildCharacterSheet(game, member, index) {
     summary.className = 'sheet-status';
     summary.textContent = `${member.pendingAttributePoints} point(s) available. Left-click a stat to spend one; right-click to reclaim one.`;
 
-    card.append(header, hpBar, statusList, statsRow, attributes, summary);
+    const removeRow = document.createElement('div');
+    removeRow.className = 'sheet-remove-row';
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'sheet-remove-btn';
+    removeBtn.textContent = '× Remove';
+    removeBtn.title = member.hp <= 0
+        ? 'Remove this fallen character from the party'
+        : 'Remove this character (left the game)';
+    removeBtn.dataset.removeMemberId = String(member.id);
+    removeBtn.disabled = game.hasStarted && member.hp > 0;
+    removeRow.appendChild(removeBtn);
+
+    card.append(header, subRow, hpBar, statusList, statsRow, attributes, summary, removeRow);
     return card;
 }
 
