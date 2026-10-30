@@ -1,12 +1,13 @@
 import { createGame, createPartyMember, activeMember, persistSnapshot, loadStoredSnapshot, saveSnapshot } from './state.js';
-import { generateMap, storeActiveFloor, loadMemberFloor, setPartyFormation } from './map.js';
-import { applyCharacterClass, updateDerivedStats, setMovementAllowance, getDifficultySettings } from './party.js';
+import { generateMap, storeActiveFloor, loadMemberFloor, setPartyFormation, isWalkable } from './map.js';
+import { applyCharacterClass, updateDerivedStats, setMovementAllowance, getDifficultySettings, adjacentDeadPartyMembers } from './party.js';
 import { createLogger } from './log.js';
 import { LayoutManager } from './layout.js';
 import { NetworkManager } from './network.js';
 import { renderMap, renderLegend, updateActionButtons, renderCharacterSheets, updateMapSizing, centerMapOnActiveMember, renderMinimap, renderTurnOrder, renderFloatingTexts, updateFloatingTexts } from './ui.js';
 import { bindInput } from './input.js';
 import { handleRemoteAction, sendLocalAction, confirmLocalAction, rejectLocalAction } from './network-actions.js';
+import { nearestAttackTarget } from './combat.js';
 import { MAX_PARTY_SIZE, CLASSES, DIFFICULTIES, ITEMS } from './config.js';
 
 let game = createGame();
