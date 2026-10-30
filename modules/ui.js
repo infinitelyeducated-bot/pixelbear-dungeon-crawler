@@ -359,6 +359,21 @@ function buildCharacterSheet(game, member, index) {
         card.style.borderColor = STATUS_BORDER_COLORS[activeStatus.type];
     }
 
+    // Name on its own line at the top, editable until locked/started
+    const nameRow = document.createElement('div');
+    nameRow.className = 'sheet-name-row';
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.className = 'sheet-name-input';
+    nameInput.value = member.name;
+    nameInput.maxLength = 24;
+    nameInput.dataset.memberId = String(member.id);
+    nameInput.dataset.field = 'name';
+    nameInput.disabled = game.hasStarted || member.ready === true;
+    nameInput.style.color = member.color;
+    nameInput.setAttribute('aria-label', 'Character name');
+    nameRow.appendChild(nameInput);
+
     const header = document.createElement('div');
     header.className = 'sheet-heading-row';
 
@@ -368,7 +383,7 @@ function buildCharacterSheet(game, member, index) {
     avatar.style.color = member.color;
 
     const heading = document.createElement('h3');
-    heading.innerHTML = `${member.marker} ${index + 1}. ${member.name}${member.hp <= 0 ? ' <span class="down-tag">(down)</span>' : ''}`;
+    heading.innerHTML = `${member.marker} ${index + 1}.${member.hp <= 0 ? ' <span class="down-tag">(down)</span>' : ''}`;
     heading.style.color = member.color;
 
     const title = document.createElement('div');
@@ -394,12 +409,11 @@ function buildCharacterSheet(game, member, index) {
 
     const classPoints = document.createElement('div');
     classPoints.className = 'sheet-class-points';
-    const classLabel = document.createElement('label');
-    classLabel.textContent = 'Class';
     const classSelect = document.createElement('select');
     classSelect.dataset.memberId = String(member.id);
     classSelect.dataset.field = 'classKey';
-    classSelect.disabled = game.hasStarted;
+    classSelect.disabled = game.hasStarted || member.ready === true;
+    classSelect.setAttribute('aria-label', 'Class');
     for (const [classKey, characterClass] of Object.entries(CLASSES)) {
         const option = document.createElement('option');
         option.value = classKey;
@@ -407,12 +421,22 @@ function buildCharacterSheet(game, member, index) {
         option.selected = member.classKey === classKey;
         classSelect.appendChild(option);
     }
-    classLabel.appendChild(classSelect);
+    const readyLabel = document.createElement('label');
+    readyLabel.className = 'sheet-ready-label';
+    readyLabel.title = 'Lock in this player: name, class and points become final. In network games the host can start once every player is ready.';
+    const readyBox = document.createElement('input');
+    readyBox.type = 'checkbox';
+    readyBox.className = 'sheet-ready-box';
+    readyBox.dataset.readyMemberId = String(member.id);
+    readyBox.checked = member.ready === true;
+    readyBox.disabled = game.hasStarted;
+    readyLabel.append(readyBox, document.createTextNode(member.ready ? ' READY' : ' Ready?'));
+    if (member.ready) readyLabel.classList.add('is-ready');
     const remainingPoints = document.createElement('span');
     remainingPoints.className = 'remaining-points';
     remainingPoints.textContent = `${member.pendingAttributePoints} pt`;
     remainingPoints.title = 'Unspent attribution points';
-    classPoints.append(classLabel, remainingPoints);
+    classPoints.append(classSelect, readyLabel, remainingPoints);
     subRow.appendChild(classPoints);
 
     const hpBar = document.createElement('div');
@@ -504,7 +528,7 @@ function buildCharacterSheet(game, member, index) {
     removeBtn.disabled = game.hasStarted && member.hp > 0;
     removeRow.appendChild(removeBtn);
 
-    card.append(header, subRow, hpBar, statusList, statsRow, attributes, summary, removeRow);
+    card.append(nameRow, header, subRow, hpBar, statusList, statsRow, attributes, summary, removeRow);
     return card;
 }
 

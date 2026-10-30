@@ -781,6 +781,55 @@
             color: var(--member-color, #ffcc00);
         }
 
+        .sheet-name-row {
+            margin-bottom: 4px;
+        }
+
+        .sheet-name-input {
+            width: 100%;
+            padding: 4px 6px;
+            border: 1px solid #4a4a6a;
+            border-radius: 4px;
+            background: #0a0a10;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            font-weight: bold;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        .sheet-name-input:disabled {
+            border-color: transparent;
+            background: transparent;
+            opacity: 1;
+        }
+
+        .sheet-name-input:focus {
+            outline: 2px solid #ffcc00;
+        }
+
+        .sheet-ready-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            color: #b9b3a3;
+            font-size: 0.68rem;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .sheet-ready-label.is-ready {
+            color: #76ff03;
+            font-weight: bold;
+        }
+
+        .sheet-ready-box {
+            width: 14px;
+            height: 14px;
+            accent-color: #76ff03;
+            cursor: pointer;
+        }
+
         .sheet-heading-row {
             display: flex;
             align-items: flex-start;
@@ -870,10 +919,14 @@
         }
 
         .sheet-class-points {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
+            display: flex;
             gap: 5px;
-            align-items: end;
+            align-items: center;
+            min-width: 0;
+        }
+
+        .sheet-class-points select {
+            flex: 1 1 auto;
         }
 
         .sheet-class-points label,

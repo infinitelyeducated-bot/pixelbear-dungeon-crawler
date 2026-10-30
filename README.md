@@ -44,7 +44,9 @@ The currently active character sheet is outlined in **yellow** and tinted by sta
 ### Party setup
 
 - Use the **New member class** dropdown and **+ Add Player** to choose a class when adding characters.
-- Click the red **×** on any character sheet to remove that character before the first move.
+- Each character's **name is edited directly at the top of their sheet** — type a new name any time before locking in.
+- Next to the class dropdown is a **Ready checkbox**: checking it shows a lock-in warning, then marks the player READY and freezes their name, class and points (uncheck to edit again before the game starts). When every player is ready the log announces the game can begin — and in network games the **first move is blocked until all players are ready**, so the checkbox doubles as the start gate.
+- Click the red **× Remove** at the bottom of any sheet to remove that character before the first move; fallen characters can be removed at any time.
 - The **– Remove Active** button removes the currently active character; the last member cannot be removed.
 
 ## Multiplayer

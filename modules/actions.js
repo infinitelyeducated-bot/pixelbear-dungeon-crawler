@@ -34,6 +34,11 @@ export function move(game, direction, logMessage, updateUI, broadcast) {
     if (game.gameOver) return;
     const member = activeMember(game);
     if (!member || member.hp <= 0) return;
+    if (!game.hasStarted && game.requireAllReady && !game.party.every(m => m.ready === true)) {
+        const waiting = game.party.filter(m => !m.ready).map(m => m.name).join(', ');
+        logMessage(`Cannot start yet — waiting for: ${waiting}.`, null, 'Game Master');
+        return;
+    }
     if (member.movesRemaining <= 0) {
         finishTurn(game, logMessage, updateUI, broadcast);
         return;

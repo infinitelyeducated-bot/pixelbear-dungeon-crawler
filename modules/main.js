@@ -364,6 +364,7 @@ function bindNetworkUI() {
         setupNetworkHandlers();
         try {
             const id = await networkManager.startHost(url, { hostAsGm });
+            game.requireAllReady = true;
             document.getElementById('host-id-display').textContent = id;
             document.getElementById('network-mode').textContent = hostAsGm ? 'Hosting as GM' : 'Hosting';
             if (lobbySection) lobbySection.style.display = 'block';
@@ -554,6 +555,10 @@ function bindGameUI() {
 
     document.getElementById('character-sheet-list')?.addEventListener('change', event => {
         if (!(event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement)) return;
+        if (event.target.classList.contains('sheet-ready-box')) {
+            handleReadyToggle(event.target);
+            return;
+        }
         if (!event.target.dataset.pointStat) updateCharacterField(event.target);
     });
     document.getElementById('character-sheet-list')?.addEventListener('click', event => {
@@ -565,6 +570,50 @@ function bindGameUI() {
         event.preventDefault();
         updateAttributePoints(event.target, -1);
     });
+}
+
+function handleReadyToggle(box) {
+    const member = game.party.find(item => item.id === Number(box.dataset.readyMemberId));
+    if (!member) return;
+    if (box.checked) {
+        const ok = confirm(
+            `Lock in ${member.name}?\n\n` +
+            `Name, class and attribute points become FINAL for this player. ` +
+            `Uncheck Ready later if you need to change something before the game starts.\n\n` +
+            `When every player is ready, the game can begin.`
+        );
+        if (!ok) {
+            box.checked = false;
+            return;
+        }
+        member.ready = true;
+        logMessage(`${member.name} is locked in and READY to play.`, member);
+    } else {
+        member.ready = false;
+        logMessage(`${member.name} is no longer ready.`, member);
+    }
+    if (networkManager?.mode) {
+        if (networkManager.isHost) {
+            networkManager.broadcast({ type: 'sync', game });
+            maybeAnnounceAllReady();
+        } else {
+            sendLocalAction(networkManager, 'setReady', { memberId: member.id, ready: member.ready });
+        }
+    } else {
+        maybeAnnounceAllReady();
+    }
+    updateUI();
+}
+
+function maybeAnnounceAllReady() {
+    if (game.hasStarted) return;
+    const allReady = game.party.length > 0 && game.party.every(m => m.ready === true);
+    if (allReady) {
+        logMessage('All players are locked in and ready — the adventure can begin! (Any move starts the game.)', null, 'Game Master');
+        if (networkManager?.isHost) {
+            networkManager.broadcast({ type: 'chat', sender: 'Game', text: 'All players ready — host may start!', timestamp: Date.now() });
+        }
+    }
 }
 
 function updateCharacterField(input) {
