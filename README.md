@@ -29,13 +29,17 @@ On mobile devices, the on-screen D-pad and action buttons replace the keyboard s
 
 ## User interface
 
-The main game screen is divided into three columns:
+The screen layout is arranged around the central dungeon map:
 
-- **Left column** – player action buttons, party chat, and minimap.
-- **Center column** – the ASCII dungeon map, turn-order timeline, and map legend.
-- **Right column** – party character sheets (compact horizontal stat rows) and the party setup / inventory panel.
+- **Top center** – character name/avatar row and the dungeon level title.
+- **Top left** – map key / legend.
+- **Top right** – party loadout / inventory panel.
+- **Center left** – party chat and minimap.
+- **Center** – the ASCII dungeon map.
+- **Center right** – player options and adventure log.
+- **Bottom (below the main box)** – party character sheets in a compact horizontal stat format.
 
-The currently active character sheet is outlined in **yellow** so you always know whose turn it is. Character sheets use a compact horizontal stat format while playing; the larger blocky sheet format is reserved for printing.
+The currently active character sheet is outlined in **yellow**. Character sheets use a compact horizontal stat format while playing; the larger blocky sheet format is reserved for printing.
 
 ## Multiplayer
 

@@ -20,7 +20,7 @@ const checks = [
     ['turnOrder', () => page.locator('#turn-order-bar .turn-order-item').count().then(c => c > 0)],
     ['characterSheets', () => page.locator('#character-sheet-list .character-sheet').count().then(c => c === 6)],
     ['minimap', () => page.locator('#minimap canvas').count().then(c => c > 0)],
-    ['inventorySection', () => page.locator('#inventory-section').count().then(c => c > 0)],
+    ['inventorySection', () => page.locator('#inventory-panel').count().then(c => c > 0)],
     ['chatSection', () => page.locator('#chat-section').count().then(c => c > 0)],
     ['chatForm', () => page.locator('#chat-form').count().then(c => c > 0)],
     ['networkDialog', () => page.locator('#network-dialog').count().then(c => c > 0)],

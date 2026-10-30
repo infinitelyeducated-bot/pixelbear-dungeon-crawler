@@ -77,6 +77,20 @@ export function renderTurnOrder(game, container) {
     container.appendChild(wrapper);
 }
 
+export function renderTopPartyRow(game, container) {
+    if (!container) return;
+    container.replaceChildren();
+    const active = activeMember(game);
+    for (const member of game.party) {
+        const item = document.createElement('div');
+        item.className = `top-party-item ${member === active ? 'active' : ''}`;
+        item.style.color = member.color;
+        item.innerHTML = `<span class="top-party-avatar">${CLASS_AVATARS[member.classKey] || '•'}</span><span class="top-party-name">${member.name}</span>`;
+        item.title = `${member.name} (${member.className}) ${member === active ? '— ACTIVE' : ''}`;
+        container.appendChild(item);
+    }
+}
+
 export function renderMap(game, mapContent) {
     const fragment = document.createDocumentFragment();
     const active = activeMember(game);

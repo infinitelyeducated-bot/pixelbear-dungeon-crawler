@@ -4,7 +4,7 @@ import { applyCharacterClass, updateDerivedStats, setMovementAllowance, getDiffi
 import { createLogger } from './log.js';
 import { LayoutManager } from './layout.js';
 import { NetworkManager } from './network.js';
-import { renderMap, renderLegend, updateActionButtons, renderCharacterSheets, updateMapSizing, centerMapOnActiveMember, renderMinimap, renderTurnOrder, renderFloatingTexts, updateFloatingTexts } from './ui.js';
+import { renderMap, renderLegend, updateActionButtons, renderCharacterSheets, updateMapSizing, centerMapOnActiveMember, renderMinimap, renderTurnOrder, renderFloatingTexts, updateFloatingTexts, renderTopPartyRow } from './ui.js';
 import { bindInput } from './input.js';
 import { handleRemoteAction, sendLocalAction, confirmLocalAction, rejectLocalAction } from './network-actions.js';
 import { nearestAttackTarget } from './combat.js';
@@ -50,6 +50,7 @@ export function updateUI() {
     renderMinimap(game, document.getElementById('minimap'));
     renderLegend(game, document.getElementById('player-legend-markers'));
     renderTurnOrder(game, document.getElementById('turn-order-bar'));
+    renderTopPartyRow(game, document.getElementById('top-party-row'));
     renderFloatingTexts(game, document.getElementById('floating-text-layer'));
     const biome = game.biome;
     const levelTitle = document.getElementById('level-title');
@@ -158,6 +159,8 @@ function setupNetworkHandlers() {
     if (!networkManager) return;
     networkManager.addEventListener('status', event => {
         document.getElementById('network-status').textContent = event.detail;
+        const rightStatus = document.getElementById('network-status-right');
+        if (rightStatus) rightStatus.textContent = event.detail;
     });
     networkManager.addEventListener('peerConnected', event => {
         const { peerId, reconnect } = event.detail;

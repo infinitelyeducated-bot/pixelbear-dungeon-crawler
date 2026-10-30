@@ -25,8 +25,8 @@
         .game-brand {
             color: #ffcc00;
             text-shadow: 0 0 5px rgba(255, 204, 0, 0.7);
-            margin: 3px 0;
-            font-size: 18px;
+            margin: 0;
+            font-size: 16px;
             text-align: center;
         }
 
@@ -46,7 +46,7 @@
         
         .dungeon-view {
             display: grid;
-            grid-template-rows: auto auto 1fr auto;
+            grid-template-rows: auto 1fr auto;
             background: #0a0a0a;
             border: 3px solid #ffcc00;
             padding: 5px;
@@ -55,11 +55,64 @@
             overflow: hidden;
         }
 
-        .map-stage {
-            margin-top: 2px;
+        .top-bar {
+            display: grid;
+            grid-template-columns: minmax(180px, 220px) minmax(0, 1fr) minmax(180px, 220px);
+            align-items: start;
+            gap: 8px;
+            margin-bottom: 8px;
         }
 
-        .dungeon-content {
+        .center-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            text-align: center;
+        }
+
+        .top-party-row {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .top-party-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            padding: 4px 8px;
+            border: 1px solid #4a4a6a;
+            border-radius: 5px;
+            background: #141421;
+            font-size: 0.72rem;
+        }
+
+        .top-party-item.active {
+            border-color: #ffe14d;
+            outline: 2px solid #ffe14d;
+            outline-offset: 1px;
+            background: #1a1a28;
+        }
+
+        .top-party-avatar {
+            font-size: 1.1rem;
+        }
+
+        .party-load {
+            padding: 8px;
+            border: 2px solid #4a4a6a;
+            border-radius: 8px;
+            background: #141421;
+            font-size: 0.75rem;
+            max-height: 160px;
+            overflow-y: auto;
+        }
+
+        .main-stage {
             display: grid;
             grid-template-columns: minmax(190px, 210px) minmax(0, 1fr) minmax(270px, 340px);
             align-items: start;
@@ -77,25 +130,25 @@
 
         .map-column {
             display: grid;
-            grid-template-rows: auto 1fr auto auto;
+            grid-template-rows: 1fr auto;
             min-width: 0;
             min-height: 0;
         }
 
         .right-column {
             display: grid;
-            grid-template-rows: 1fr auto;
+            grid-template-columns: 1fr;
             gap: 8px;
+            align-content: start;
             min-width: 0;
             min-height: 0;
-            max-height: calc(100vh - 120px);
+            max-height: calc(100vh - 260px);
             overflow: hidden;
             position: relative;
         }
 
-        .bottom-row {
-            margin-top: 8px;
-            min-width: 0;
+        .right-column .action-legend {
+            width: 100%;
         }
 
         .dungeon-map {
@@ -105,9 +158,9 @@
 
         #level-title {
             color: #ffcc00;
-            margin-bottom: 2px;
+            margin: 0;
             text-align: center;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
         }
 
         .ascii-art {
@@ -153,9 +206,10 @@
         
         .action-legend {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: repeat(4, minmax(0, 1fr));
             gap: 3px;
-            width: 100%;
+            width: 75%;
+            margin: 0 auto;
             padding: 5px;
             border: 3px solid #4a4a6a;
             background: #10101b;
@@ -185,13 +239,13 @@
 
         .action-button {
             position: relative;
-            min-height: 38px;
+            min-height: 32px;
             padding: 2px;
             border: 1px solid #b7f5c2;
             border-radius: 6px;
             background: #e5ffe9;
             color: #15241a;
-            font-size: 0.72rem;
+            font-size: 0.68rem;
             line-height: 1.2;
             box-shadow: none;
         }
@@ -223,14 +277,14 @@
 
         .action-key {
             display: block;
-            margin-top: 2px;
+            margin-top: 1px;
             color: #536353;
-            font-size: 0.62rem;
+            font-size: 0.58rem;
             font-weight: normal;
         }
 
         .action-icon {
-            font-size: 0.95rem;
+            font-size: 0.85rem;
             font-weight: 900;
         }
 
@@ -1050,6 +1104,14 @@
                 grid-template-columns: minmax(0, 1fr);
             }
 
+            .top-bar {
+                grid-template-columns: 1fr;
+            }
+
+            .main-stage {
+                grid-template-columns: 1fr;
+            }
+
             .left-column {
                 order: 2;
             }
@@ -1061,6 +1123,10 @@
             .right-column {
                 order: 3;
                 max-height: none;
+            }
+
+            .action-legend {
+                width: 100%;
             }
 
             .character-sheet-layout {
@@ -1083,21 +1149,40 @@
     <div class="game-container">
         <p class="game-help">Press Escape to pause, resume, or jump to the character sheets.</p>
         <div class="dungeon-view">
-            <h1 class="game-brand">PixelBear's Ascii Dungeon Crawler</h1>
-            <div id="turn-order-bar" class="turn-order-bar"></div>
-            <div class="dungeon-content">
+            <div class="top-bar">
+                <section class="legend" aria-label="Dungeon map legend">
+                    <span class="legend-title">MAP KEY</span>
+                    <div class="legend-item">
+                        <span class="legend-label">Players</span>
+                        <span id="player-legend-markers" class="player-legend-markers"></span>
+                    </div>
+                    <div class="legend-item"><span class="legend-symbol legend-wall">#</span> Wall</div>
+                    <div class="legend-item"><span class="legend-symbol legend-start">S</span> Start</div>
+                    <div class="legend-item"><span class="legend-symbol legend-door">+</span> Door</div>
+                    <div class="legend-item"><span class="legend-symbol legend-monster">M</span> Monster</div>
+                    <div class="legend-item"><span class="legend-symbol legend-treasure">$</span> Coin</div>
+                    <div class="legend-item"><span class="legend-symbol legend-treasure">%</span> Gem</div>
+                    <div class="legend-item"><span class="legend-symbol legend-treasure">&amp;</span> Relic</div>
+                    <div class="legend-item"><span class="legend-symbol legend-power">P</span> Power Item</div>
+                    <div class="legend-item"><span class="legend-symbol legend-trap">^</span> Trap</div>
+                    <div class="legend-item"><span class="legend-symbol legend-chasm">≡</span> Chasm</div>
+                    <div class="legend-item"><span class="legend-symbol legend-water">~</span> Water</div>
+                    <div class="legend-item"><span class="legend-symbol legend-shrine">Θ</span> Shrine</div>
+                    <div class="legend-item"><span class="legend-symbol legend-exit">&gt;</span> Exit</div>
+                </section>
+                <div class="center-header">
+                    <h1 class="game-brand">PixelBear's Ascii Dungeon Crawler</h1>
+                    <div id="top-party-row" class="top-party-row"></div>
+                    <h3 id="level-title">DUNGEON LEVEL 1</h3>
+                </div>
+                <section class="party-load" aria-label="Party loadout">
+                    <h2 class="panel-title" style="font-size:0.85rem; padding-bottom:4px; margin-bottom:6px;">PARTY LOAD</h2>
+                    <div id="inventory-panel">No items.</div>
+                    <div id="network-status" class="network-status" style="margin-top:8px;">Offline</div>
+                </section>
+            </div>
+            <div class="main-stage">
                 <section class="left-column" aria-label="Controls and info">
-                    <section class="action-legend" aria-label="Player actions">
-                        <h2>PLAYER OPTIONS</h2>
-                        <button id="move-up" class="action-button" aria-label="Move up"><span class="action-icon icon-move">↑</span> Up<span class="action-key">↑ / W</span></button>
-                        <button id="move-left" class="action-button" aria-label="Move left"><span class="action-icon icon-move">←</span> Left<span class="action-key">← / A</span></button>
-                        <button id="move-down" class="action-button" aria-label="Move down"><span class="action-icon icon-move">↓</span> Down<span class="action-key">↓ / S</span></button>
-                        <button id="move-right" class="action-button" aria-label="Move right"><span class="action-icon icon-move">→</span> Right<span class="action-key">→ / D</span></button>
-                        <button id="attack-btn" class="action-button" aria-label="Attack"><span class="action-icon icon-attack">⚔</span> Attack<span class="action-key">F</span></button>
-                        <button id="rest-btn" class="action-button" aria-label="Rest and heal"><span class="action-icon icon-rest">✚</span> Rest<span class="action-key">R</span></button>
-                        <button id="guard-btn" class="action-button" aria-label="Stand guard"><span class="action-icon icon-guard">▣</span> Guard<span class="action-key">G</span></button>
-                        <button id="end-turn-btn" class="action-button" aria-label="End turn"><span class="action-icon icon-end">≫</span> End Turn<span class="action-key">E</span></button>
-                    </section>
                     <section id="chat-section" aria-label="Chat">
                         <h2 class="panel-title" style="font-size:0.85rem;">PARTY CHAT</h2>
                         <div id="chat-log" class="chat-log"></div>
@@ -1112,36 +1197,26 @@
                     </section>
                 </section>
                 <section class="map-column" aria-label="Dungeon map">
-                    <h3 id="level-title">DUNGEON LEVEL 1</h3>
                     <div id="dungeon-map" class="dungeon-map">
                         <div id="dungeon-map-content" class="dungeon-map-content"></div>
                     </div>
                     <div id="floating-text-layer" class="floating-text-layer"></div>
-                    <div class="legend" aria-label="Dungeon map legend">
-                        <span class="legend-title">MAP KEY</span>
-                        <div class="legend-item">
-                            <span class="legend-label">Players</span>
-                            <span id="player-legend-markers" class="player-legend-markers"></span>
-                        </div>
-                        <div class="legend-item"><span class="legend-symbol legend-wall">#</span> Wall</div>
-                        <div class="legend-item"><span class="legend-symbol legend-start">S</span> Start</div>
-                        <div class="legend-item"><span class="legend-symbol legend-door">+</span> Door</div>
-                        <div class="legend-item"><span class="legend-symbol legend-monster">M</span> Monster</div>
-                        <div class="legend-item"><span class="legend-symbol legend-treasure">$</span> Coin</div>
-                        <div class="legend-item"><span class="legend-symbol legend-treasure">%</span> Gem</div>
-                        <div class="legend-item"><span class="legend-symbol legend-treasure">&amp;</span> Relic</div>
-                        <div class="legend-item"><span class="legend-symbol legend-power">P</span> Power Item</div>
-                        <div class="legend-item"><span class="legend-symbol legend-trap">^</span> Trap</div>
-                        <div class="legend-item"><span class="legend-symbol legend-chasm">≡</span> Chasm</div>
-                        <div class="legend-item"><span class="legend-symbol legend-water">~</span> Water</div>
-                        <div class="legend-item"><span class="legend-symbol legend-shrine">Θ</span> Shrine</div>
-                        <div class="legend-item"><span class="legend-symbol legend-exit">&gt;</span> Exit</div>
-                    </div>
                 </section>
-                <section class="right-column" aria-label="Character sheets">
-                    <section id="character-sheets" class="character-sheets">
-                        <h2 class="panel-title" style="font-size:0.95rem; padding-bottom:6px; margin-bottom:8px;">PARTY SHEETS</h2>
-                        <div id="character-sheet-list" class="sheet-grid"></div>
+                <section class="right-column" aria-label="Player options and log">
+                    <section class="action-legend" aria-label="Player actions">
+                        <h2>PLAYER OPTIONS</h2>
+                        <button id="move-up" class="action-button" aria-label="Move up"><span class="action-icon icon-move">↑</span> Up<span class="action-key">↑ / W</span></button>
+                        <button id="move-left" class="action-button" aria-label="Move left"><span class="action-icon icon-move">←</span> Left<span class="action-key">← / A</span></button>
+                        <button id="move-down" class="action-button" aria-label="Move down"><span class="action-icon icon-move">↓</span> Down<span class="action-key">↓ / S</span></button>
+                        <button id="move-right" class="action-button" aria-label="Move right"><span class="action-icon icon-move">→</span> Right<span class="action-key">→ / D</span></button>
+                        <button id="attack-btn" class="action-button" aria-label="Attack"><span class="action-icon icon-attack">⚔</span> Attack<span class="action-key">F</span></button>
+                        <button id="rest-btn" class="action-button" aria-label="Rest and heal"><span class="action-icon icon-rest">✚</span> Rest<span class="action-key">R</span></button>
+                        <button id="guard-btn" class="action-button" aria-label="Stand guard"><span class="action-icon icon-guard">▣</span> Guard<span class="action-key">G</span></button>
+                        <button id="end-turn-btn" class="action-button" aria-label="End turn"><span class="action-icon icon-end">≫</span> End Turn<span class="action-key">E</span></button>
+                    </section>
+                    <section class="game-log-section" aria-label="Game events">
+                        <h2 class="panel-title" style="font-size:0.85rem;">ADVENTURE LOG</h2>
+                        <div id="game-log" class="log-panel"></div>
                     </section>
                     <section class="party-setup">
                         <h3 style="color:#ffcc00; margin-bottom:6px;">PARTY SETUP</h3>
@@ -1171,21 +1246,12 @@
                         </div>
                         <div class="network-section">
                             <button id="network-button" type="button" style="background:#2196f3; color:#fff;">Network</button>
-                            <span id="network-status" class="network-status">Offline</span>
-                        </div>
-                        <div id="inventory-section">
-                            <h4 style="color:#ffcc00; margin:8px 0 4px;">INVENTORY</h4>
-                            <div id="inventory-panel">No items.</div>
+                            <span id="network-status-right" class="network-status">Offline</span>
                         </div>
                     </section>
                 </section>
             </div>
-            <div class="bottom-row">
-                <section class="game-log-section" aria-label="Game events">
-                    <h2 class="panel-title" style="font-size:0.85rem;">ADVENTURE LOG</h2>
-                    <div id="game-log" class="log-panel"></div>
-                </section>
-            </div>
+            <div id="turn-order-bar" class="turn-order-bar" style="display:none;"></div>
             <div id="mobile-controls" class="mobile-controls" aria-label="Mobile controls">
                 <div class="dpad">
                     <button id="mobile-up" aria-label="Move up">▲</button>
@@ -1204,6 +1270,11 @@
             </div>
         </div>
     </div>
+
+    <section id="character-sheets" class="character-sheets">
+        <h2 class="panel-title" style="font-size:0.95rem; padding-bottom:6px; margin-bottom:8px;">PARTY SHEETS</h2>
+        <div id="character-sheet-list" class="sheet-grid"></div>
+    </section>
 
     <section id="error-boundary" class="error-boundary" style="display:none;">
         <div class="error-box">
