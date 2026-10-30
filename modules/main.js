@@ -295,8 +295,13 @@ function bindNetworkUI() {
     const chatInput = document.getElementById('chat-input');
     chatForm?.addEventListener('submit', event => {
         event.preventDefault();
-        if (!networkManager?.mode || !chatInput.value.trim()) return;
-        const msg = networkManager.sendChat(chatInput.value.trim());
+        const text = chatInput.value.trim();
+        if (!text) return;
+        const sender = networkManager?.peerId || 'You';
+        const msg = { type: 'chat', sender, text, timestamp: Date.now() };
+        if (networkManager?.mode) {
+            networkManager.sendChat(text);
+        }
         appendChatMessage(msg);
         chatInput.value = '';
     });

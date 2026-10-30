@@ -55,8 +55,11 @@ export function bindInput(game, logMessage, updateUI, broadcast, networkManager)
                 break;
             case 'r':
                 event.preventDefault();
-                if (game.activeMember()?.hp < game.activeMember()?.maxHp) {
-                    localOrSend('rest', {}, () => rest(game, logMessage, updateUI, broadcast));
+                {
+                    const member = activeMember(game);
+                    if (member && member.hp < member.maxHp) {
+                        localOrSend('rest', {}, () => rest(game, logMessage, updateUI, broadcast));
+                    }
                 }
                 break;
             case 'g':
