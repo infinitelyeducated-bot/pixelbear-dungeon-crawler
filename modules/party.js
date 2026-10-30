@@ -2,7 +2,7 @@ import { CLASSES, CLASS_SETTINGS, MAX_PARTY_SIZE, MAX_CHARACTER_LEVEL, DIFFICULT
 import { activeMember } from './state.js';
 
 export function movementAllowance(member) {
-    return Math.max(1, Math.floor(member.dexterity / 5) + 2);
+    return 10;
 }
 
 export function setMovementAllowance(member) {
