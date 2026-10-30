@@ -161,7 +161,16 @@
 
         .right-column .game-log-section {
             order: 10;
+            min-height: 140px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .right-column .game-log-section .log-panel {
+            flex: 1 1 auto;
             min-height: 120px;
+            max-height: 220px;
+            overflow-y: auto;
         }
 
         .dungeon-map {

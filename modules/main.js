@@ -308,10 +308,13 @@ function bindNetworkUI() {
 
     document.getElementById('turn-timer-toggle')?.addEventListener('change', event => {
         const seconds = Number(document.getElementById('turn-timer-seconds')?.value || 60);
+        const timerDisplay = document.getElementById('turn-timer');
         if (event.target.checked) {
             networkManager?.startTurnTimer(seconds);
+            if (timerDisplay) timerDisplay.textContent = `${seconds}s / ${seconds}s`;
         } else {
             networkManager?.stopTurnTimer();
+            if (timerDisplay) timerDisplay.textContent = '';
         }
     });
 }
@@ -324,12 +327,14 @@ function bindGameUI() {
         updateUI();
     });
     document.getElementById('remove-member-btn')?.addEventListener('click', () => {
-        if (game.party.length > 0) {
-            const active = activeMember(game);
-            if (active) removePartyMember(game, active.id, logMessage);
-            refreshPartySetupMap();
-            updateUI();
+        if (game.party.length <= 1) {
+            logMessage('Cannot remove the last party member!', activeMember(game));
+            return;
         }
+        const active = activeMember(game);
+        if (active) removePartyMember(game, active.id, logMessage);
+        refreshPartySetupMap();
+        updateUI();
     });
     document.getElementById('gm-starting-points')?.addEventListener('change', event => {
         setStartingPoints(event.target);
