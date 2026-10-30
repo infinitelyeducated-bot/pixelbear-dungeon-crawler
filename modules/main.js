@@ -320,7 +320,8 @@ function bindGameUI() {
     });
     document.getElementById('remove-member-btn')?.addEventListener('click', () => {
         if (game.party.length > 0) {
-            removePartyMember(game.activeMember().id);
+            const active = activeMember(game);
+            if (active) removePartyMember(game, active.id, logMessage);
             refreshPartySetupMap();
             updateUI();
         }
