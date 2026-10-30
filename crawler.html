@@ -119,8 +119,8 @@
 
         .main-stage {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(200px, 230px);
-            grid-template-rows: minmax(320px, 1fr) minmax(150px, 190px);
+            grid-template-columns: minmax(260px, 340px) minmax(0, 1fr) minmax(200px, 230px);
+            grid-template-rows: minmax(320px, 1fr) minmax(140px, 170px);
             grid-template-areas:
                 "map map side"
                 "chat log side";
@@ -168,17 +168,35 @@
             display: flex;
             flex-direction: column;
             min-height: 0;
+            min-width: 0;
+            max-width: 100%;
             overflow: hidden;
             border: 2px solid #4a4a6a;
             border-radius: 8px;
             background: #10101b;
             padding: 8px;
+            box-sizing: border-box;
+        }
+
+        #chat-section .panel-title {
+            flex: 0 0 auto;
         }
 
         #chat-section .chat-log {
             flex: 1 1 auto;
-            min-height: 60px;
+            min-height: 40px;
+            height: auto;
             overflow-y: auto;
+            margin-bottom: 6px;
+        }
+
+        #chat-section .chat-form {
+            flex: 0 0 auto;
+            min-width: 0;
+        }
+
+        #chat-section .chat-form input {
+            min-width: 0;
         }
 
         .main-stage .game-log-section {
@@ -950,7 +968,6 @@
         }
 
         .chat-log {
-            height: 100px;
             overflow-y: auto;
             background: #0a0a0a;
             border: 1px solid #4a4a6a;
@@ -958,6 +975,7 @@
             padding: 6px;
             font-size: 0.75rem;
             margin-bottom: 6px;
+            overflow-wrap: break-word;
         }
 
         .chat-entry {
