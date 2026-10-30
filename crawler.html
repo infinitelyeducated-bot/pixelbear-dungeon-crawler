@@ -141,6 +141,43 @@
             justify-items: center;
             min-width: 0;
             min-height: 0;
+            position: relative;
+        }
+
+        .map-column.fullscreen {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            background: #0a0a0a;
+            padding: 20px;
+            grid-template-rows: 1fr auto;
+        }
+
+        .map-column.fullscreen .dungeon-map {
+            width: 100%;
+            height: 100%;
+            max-width: none;
+            font-size: 14px;
+        }
+
+        .fullscreen-toggle {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            z-index: 10;
+            padding: 4px 8px;
+            border: 1px solid #ffcc00;
+            border-radius: 4px;
+            background: #1a1a2e;
+            color: #ffcc00;
+            font-size: 0.7rem;
+            cursor: pointer;
+        }
+
+        .map-column.fullscreen .fullscreen-toggle {
+            position: fixed;
+            top: 10px;
+            right: 10px;
         }
 
         .right-column {
@@ -558,13 +595,36 @@
 
         .sheet-heading-row {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) minmax(110px, auto);
+            grid-template-columns: minmax(0, 1fr) auto minmax(110px, auto);
             align-items: end;
             gap: 6px;
             margin-bottom: 6px;
         }
 
         .sheet-heading-row h3 { margin: 0; font-size: 0.95rem; }
+
+        .sheet-remove-btn {
+            width: 24px;
+            height: 24px;
+            padding: 0;
+            border: 1px solid #f44336;
+            border-radius: 4px;
+            background: #3a1010;
+            color: #f44336;
+            font-size: 1rem;
+            line-height: 1;
+            cursor: pointer;
+        }
+
+        .sheet-remove-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .sheet-remove-btn:hover:not(:disabled) {
+            background: #f44336;
+            color: #fff;
+        }
 
         .sheet-class-points {
             display: grid;
@@ -1230,6 +1290,11 @@
                                 <option value="spread">Spread</option>
                             </select>
                         </label>
+                        <label for="add-member-class">New member class
+                            <select id="add-member-class">
+                                <option value="fighter" selected>Fighter</option>
+                            </select>
+                        </label>
                         <div class="sheet-party-actions">
                             <button id="add-member-btn" style="background:#4caf50;">+ Add Player</button>
                             <button id="remove-member-btn" style="background:#f44336;" disabled>– Remove Active</button>
@@ -1240,7 +1305,8 @@
                         </div>
                     </section>
                 </section>
-                <section class="map-column" aria-label="Dungeon map">
+                <section class="map-column" id="map-column" aria-label="Dungeon map">
+                    <button id="fullscreen-toggle" class="fullscreen-toggle" type="button" title="Toggle fullscreen map">⛶</button>
                     <div id="dungeon-map" class="dungeon-map">
                         <div id="dungeon-map-content" class="dungeon-map-content"></div>
                     </div>
@@ -1308,8 +1374,17 @@
             <button id="open-sheets-button">Character Sheets</button>
             <button id="toggle-layout-edit-button" aria-pressed="false">Enable Layout Editing</button>
             <button id="reset-layout-button">Restore Default Layout</button>
-            <button id="save-game-button">Save Game Snapshot</button>
-            <button id="load-game-button">Load Saved Game</button>
+            <label for="save-slot-select" style="display:flex; flex-direction:column; gap:4px; font-size:0.8rem; color:#d6d0bf;">
+                Save slot
+                <select id="save-slot-select" style="padding:6px; background:#0a0a0a; color:#fff; border:1px solid #65657b; border-radius:4px;">
+                    <option value="Auto" selected>Auto</option>
+                </select>
+            </label>
+            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px;">
+                <button id="save-game-button">Save</button>
+                <button id="load-game-button">Load</button>
+                <button id="delete-save-slot-button" style="background:#ef5350; color:#fff;">Delete</button>
+            </div>
             <button id="reset-game-button" style="background:linear-gradient(to bottom, #ef5350, #c62828); color:#fff;">Reset Game</button>
         </div>
         <div class="audio-controls">

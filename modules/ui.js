@@ -364,6 +364,15 @@ function buildCharacterSheet(game, member, index) {
     title.appendChild(heading);
     header.appendChild(title);
 
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'sheet-remove-btn';
+    removeBtn.textContent = '×';
+    removeBtn.title = 'Remove this character';
+    removeBtn.dataset.removeMemberId = String(member.id);
+    removeBtn.disabled = game.hasStarted;
+    header.appendChild(removeBtn);
+
     const classPoints = document.createElement('div');
     classPoints.className = 'sheet-class-points';
     const classLabel = document.createElement('label');

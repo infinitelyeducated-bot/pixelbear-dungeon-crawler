@@ -1,15 +1,17 @@
 import {
     SAVE_VERSION,
     SAVE_STORAGE_KEY,
+    SAVE_SLOTS_KEY,
     MAX_PARTY_SIZE,
     MAX_MAP_WIDTH,
     MAX_MAP_HEIGHT,
-    CLASSES,
-    BASE_MAP_WIDTH,
-    BASE_MAP_HEIGHT,
+    MAP_SIZE_MULTIPLIER,
     LEGACY_MAP_WIDTH,
     LEGACY_MAP_HEIGHT,
-    MAP_SIZE_MULTIPLIER,
+    MAX_CHARACTER_LEVEL,
+    BASE_MAP_WIDTH,
+    BASE_MAP_HEIGHT,
+    CLASSES,
     PLAYER_COLORS,
     PLAYER_MARKERS
 } from './config.js';
@@ -199,6 +201,52 @@ export function loadStoredSnapshot() {
     } catch (error) {
         console.error('Failed to load stored snapshot:', error);
         return null;
+    }
+}
+
+export function listSaveSlots() {
+    try {
+        const raw = localStorage.getItem(SAVE_SLOTS_KEY);
+        return raw ? JSON.parse(raw) : {};
+    } catch (error) {
+        console.error('Failed to list save slots:', error);
+        return {};
+    }
+}
+
+export function saveSlot(slotName, game, gameLog) {
+    try {
+        const slots = listSaveSlots();
+        slots[slotName] = saveSnapshot(game, gameLog);
+        localStorage.setItem(SAVE_SLOTS_KEY, JSON.stringify(slots));
+        return true;
+    } catch (error) {
+        console.error('Failed to save slot:', error);
+        return false;
+    }
+}
+
+export function loadSlot(slotName) {
+    try {
+        const slots = listSaveSlots();
+        const snapshot = slots[slotName];
+        if (!snapshot) return null;
+        return loadSnapshot(snapshot);
+    } catch (error) {
+        console.error('Failed to load slot:', error);
+        return null;
+    }
+}
+
+export function deleteSlot(slotName) {
+    try {
+        const slots = listSaveSlots();
+        delete slots[slotName];
+        localStorage.setItem(SAVE_SLOTS_KEY, JSON.stringify(slots));
+        return true;
+    } catch (error) {
+        console.error('Failed to delete slot:', error);
+        return false;
     }
 }
 

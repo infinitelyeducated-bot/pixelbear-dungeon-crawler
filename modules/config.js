@@ -2,6 +2,7 @@ export const MAP_WIDTH = 21;
 export const MAP_HEIGHT = 15;
 export const MAX_PARTY_SIZE = 6;
 export const SAVE_STORAGE_KEY = 'ascii-dungeon-crawler.snapshot.v2';
+export const SAVE_SLOTS_KEY = 'ascii-dungeon-crawler.slots.v1';
 export const LAYOUT_STORAGE_KEY = 'ascii-dungeon-crawler.layout.v4';
 export const SAVE_VERSION = 2;
 export const MAX_CHARACTER_LEVEL = 30;

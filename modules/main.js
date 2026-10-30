@@ -1,4 +1,4 @@
-import { createGame, createPartyMember, activeMember, persistSnapshot, loadStoredSnapshot, saveSnapshot } from './state.js';
+import { createGame, createPartyMember, activeMember, persistSnapshot, loadStoredSnapshot, saveSnapshot, listSaveSlots, saveSlot, loadSlot, deleteSlot } from './state.js';
 import { generateMap, storeActiveFloor, loadMemberFloor, setPartyFormation, isWalkable } from './map.js';
 import { applyCharacterClass, updateDerivedStats, setMovementAllowance, getDifficultySettings, adjacentDeadPartyMembers } from './party.js';
 import { createLogger } from './log.js';
@@ -137,6 +137,29 @@ function appendLogRecord(record) {
     logPanel.appendChild(entry);
     while (logPanel.children.length > 200) logPanel.firstElementChild.remove();
     logPanel.scrollTop = logPanel.scrollHeight;
+}
+
+function populateSaveSlotSelect() {
+    const slotSelect = document.getElementById('save-slot-select');
+    if (!slotSelect) return;
+    const currentValue = slotSelect.value;
+    slotSelect.innerHTML = '';
+    const slots = listSaveSlots();
+    const slotNames = Object.keys(slots).sort();
+    if (slotNames.length === 0) {
+        const option = document.createElement('option');
+        option.value = 'Auto';
+        option.textContent = 'Auto (empty)';
+        slotSelect.appendChild(option);
+    } else {
+        for (const name of slotNames) {
+            const option = document.createElement('option');
+            option.value = name;
+            option.textContent = name;
+            slotSelect.appendChild(option);
+        }
+    }
+    if (currentValue && slotNames.includes(currentValue)) slotSelect.value = currentValue;
 }
 
 function renderSavedLog() {
@@ -320,9 +343,18 @@ function bindNetworkUI() {
 }
 
 function bindGameUI() {
+    const addClassSelect = document.getElementById('add-member-class');
+    if (addClassSelect) {
+        for (const [classKey, characterClass] of Object.entries(CLASSES)) {
+            const option = document.createElement('option');
+            option.value = classKey;
+            option.textContent = characterClass.name;
+            addClassSelect.appendChild(option);
+        }
+    }
     document.getElementById('add-member-btn')?.addEventListener('click', () => {
-        const classKeys = Object.keys(CLASSES);
-        createPartyMember(game, `Adventurer ${game.party.length + 1}`, classKeys[0]);
+        const classKey = document.getElementById('add-member-class')?.value || Object.keys(CLASSES)[0];
+        createPartyMember(game, `Adventurer ${game.party.length + 1}`, classKey);
         refreshPartySetupMap();
         updateUI();
     });
@@ -333,6 +365,18 @@ function bindGameUI() {
         }
         const active = activeMember(game);
         if (active) removePartyMember(game, active.id, logMessage);
+        refreshPartySetupMap();
+        updateUI();
+    });
+    document.getElementById('character-sheet-list')?.addEventListener('click', event => {
+        const button = event.target.closest('.sheet-remove-btn');
+        if (!button) return;
+        if (game.party.length <= 1) {
+            logMessage('Cannot remove the last party member!', activeMember(game));
+            return;
+        }
+        const memberId = Number(button.dataset.removeMemberId);
+        removePartyMember(game, memberId, logMessage);
         refreshPartySetupMap();
         updateUI();
     });
@@ -356,19 +400,40 @@ function bindGameUI() {
         document.querySelector('#character-sheet-list input')?.focus({ preventScroll: true });
     });
     document.getElementById('save-game-button')?.addEventListener('click', () => {
-        persistSnapshot(game, gameLog);
-        document.getElementById('save-status').textContent = 'Game saved.';
+        const slotSelect = document.getElementById('save-slot-select');
+        const slotName = slotSelect?.value?.trim() || 'Auto';
+        const success = saveSlot(slotName, game, gameLog);
+        document.getElementById('save-status').textContent = success ? `Saved to slot "${slotName}".` : 'Save failed.';
+        populateSaveSlotSelect();
     });
     document.getElementById('load-game-button')?.addEventListener('click', () => {
-        const stored = loadStoredSnapshot();
-        if (stored) {
-            game = stored.game;
-            gameLog = stored.log;
-            logMessage = createLogger(gameLog, appendLogRecord);
-            renderSavedLog();
-            updateUI();
-            document.getElementById('escape-menu').close();
+        const slotSelect = document.getElementById('save-slot-select');
+        const slotName = slotSelect?.value?.trim();
+        if (!slotName) {
+            document.getElementById('save-status').textContent = 'Select a save slot to load.';
+            return;
         }
+        const stored = loadSlot(slotName);
+        if (!stored) {
+            document.getElementById('save-status').textContent = `No save found in "${slotName}".`;
+            return;
+        }
+        if (!confirm(`Load slot "${slotName}"? This will replace your current game.`)) return;
+        game = stored.game;
+        gameLog = stored.log;
+        logMessage = createLogger(gameLog, appendLogRecord);
+        renderSavedLog();
+        updateUI();
+        document.getElementById('escape-menu').close();
+    });
+    document.getElementById('delete-save-slot-button')?.addEventListener('click', () => {
+        const slotSelect = document.getElementById('save-slot-select');
+        const slotName = slotSelect?.value?.trim();
+        if (!slotName) return;
+        if (!confirm(`Delete save slot "${slotName}"?`)) return;
+        deleteSlot(slotName);
+        populateSaveSlotSelect();
+        document.getElementById('save-status').textContent = `Deleted slot "${slotName}".`;
     });
     document.getElementById('descend-button')?.addEventListener('click', () => {
         const member = activeMember(game);
@@ -380,6 +445,11 @@ function bindGameUI() {
         }
     });
     document.getElementById('reset-game-button')?.addEventListener('click', startNewGame);
+    document.getElementById('fullscreen-toggle')?.addEventListener('click', () => {
+        document.getElementById('map-column')?.classList.toggle('fullscreen');
+        updateMapSizing();
+        centerMapOnActiveMember(game);
+    });
     document.getElementById('toggle-layout-edit-button')?.addEventListener('click', () => {
         layoutManager.setEditMode(!layoutManager.layoutEditMode);
         if (layoutManager.layoutEditMode) document.getElementById('escape-menu').close();
@@ -589,6 +659,7 @@ window.addEventListener('DOMContentLoaded', () => {
         updateUI();
         bindInput(game, logMessage, updateUI, broadcast, networkManager);
         bindGameUI();
+        populateSaveSlotSelect();
         bindNetworkUI();
         bindAudioControls();
         bindErrorBoundary();

@@ -184,7 +184,9 @@ export function finishTurn(game, logMessage, updateUI, broadcast) {
     if (!member) return;
     logMessage('ends their turn.', member);
     tickStatusEffects(member);
+    logMessage('--- Monster Phase ---', null, 'Dungeon');
     enemyTurn(game, member, logMessage);
+    const carryOver = Math.min(2, member.movesRemaining);
     member.movesRemaining = 0;
     if (game.gameOver) {
         updateUI();
@@ -199,6 +201,7 @@ export function finishTurn(game, logMessage, updateUI, broadcast) {
         game.activeMemberIndex = nextIndex;
         loadMemberFloor(game, nextMember);
         setMovementAllowance(nextMember);
+        nextMember.movesRemaining = Math.min(nextMember.movesPerTurn, nextMember.movesRemaining + carryOver);
         updateExplored(game, nextMember);
         logMessage(`begins their turn with ${nextMember.movesPerTurn} movement spaces.`, nextMember);
         updateUI();
