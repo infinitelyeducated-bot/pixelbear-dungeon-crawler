@@ -491,6 +491,19 @@ function bindGameUI() {
     document.getElementById('resume-button')?.addEventListener('click', () => {
         document.getElementById('escape-menu').close();
     });
+    document.getElementById('open-readme-button')?.addEventListener('click', () => {
+        document.getElementById('escape-menu')?.close();
+        document.getElementById('readme-dialog')?.showModal();
+    });
+    document.getElementById('readme-close-top')?.addEventListener('click', () => document.getElementById('readme-dialog')?.close());
+    document.getElementById('readme-close-bottom')?.addEventListener('click', () => document.getElementById('readme-dialog')?.close());
+    const printReadme = () => {
+        document.body.classList.add('printing-readme');
+        window.print();
+    };
+    window.addEventListener('afterprint', () => document.body.classList.remove('printing-readme'));
+    document.getElementById('readme-print-top')?.addEventListener('click', printReadme);
+    document.getElementById('readme-print-bottom')?.addEventListener('click', printReadme);
     document.getElementById('open-sheets-button')?.addEventListener('click', () => {
         document.getElementById('escape-menu').close();
         document.getElementById('character-sheets').scrollIntoView({ behavior: 'smooth' });

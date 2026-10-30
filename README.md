@@ -61,6 +61,10 @@ The currently active character sheet is outlined in **yellow** and tinted by sta
 8. The optional **Turn timer** auto-ends a turn when time runs out.
 9. **Pre-game lobby** lets players mark Ready/Not Ready before the host starts the game. Reconnecting clients see the current lobby state, and chat history is replayed to them.
 
+## In-game guide
+
+The pause menu (Esc) has a **📖 Game Guide (README)** button that opens a full in-game manual: quick start, controls, map key, class roles, the complete combat system with the damage formula, bestiary, items and status effects, dice roller, death rules, leveling, multiplayer and saving. A **🖨 Print** button inside the guide prints just the guide (game hidden, print-friendly black-on-white formatting) through the browser's standard print dialog.
+
 ## Save data
 
 Save slots are stored in `localStorage` under `ascii-dungeon-crawler.slots.v1`. The pause menu lets you pick a slot name, then **Save**, **Load**, or **Delete**. Loading a slot asks for confirmation before replacing the current game. A legacy single snapshot is still kept under `ascii-dungeon-crawler.snapshot.v2` for backward compatibility. Save files are automatically migrated from older versions when loaded.

@@ -507,6 +507,141 @@
 
         .dice-log .dice-crit { color: #66ff66; }
         .dice-log .dice-fail { color: #ff6666; }
+
+        #readme-dialog {
+            width: min(860px, 92vw);
+            max-height: 86vh;
+            padding: 16px 20px;
+            border: 3px solid #ffcc00;
+            border-radius: 10px;
+            background: #12121a;
+            color: #d6d0bf;
+        }
+
+        #readme-dialog::backdrop { background: rgba(0, 0, 0, 0.7); }
+
+        #readme-dialog h2 {
+            color: #ffcc00;
+            margin: 0 0 10px;
+            font-size: 1.05rem;
+        }
+
+        .readme-body {
+            overflow-y: auto;
+            max-height: calc(86vh - 110px);
+            padding-right: 8px;
+            font-size: 0.8rem;
+            line-height: 1.55;
+        }
+
+        .readme-body h3 {
+            color: #ffcc00;
+            margin: 14px 0 6px;
+            font-size: 0.9rem;
+            border-bottom: 1px solid #4a4a6a;
+            padding-bottom: 3px;
+        }
+
+        .readme-body table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 6px 0;
+            font-size: 0.74rem;
+        }
+
+        .readme-body th, .readme-body td {
+            border: 1px solid #3a3a4a;
+            padding: 4px 6px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .readme-body th { background: #1d1d2c; color: #ffcc00; }
+        .readme-body tr:nth-child(even) td { background: #16161f; }
+        .readme-body code {
+            background: #0a0a10;
+            border: 1px solid #3a3a4a;
+            border-radius: 3px;
+            padding: 0 4px;
+            color: #76ff03;
+        }
+        .readme-body ul, .readme-body ol { margin: 4px 0 8px 20px; }
+        .readme-body li { margin-bottom: 3px; }
+        .readme-body p { margin: 4px 0 8px; }
+        .readme-body b { color: #f1e6d0; }
+
+        .readme-close {
+            float: right;
+            padding: 4px 10px;
+            border: 1px solid #65657b;
+            border-radius: 5px;
+            background: #2a2a3a;
+            color: #d6d0bf;
+            cursor: pointer;
+            font-size: 0.75rem;
+        }
+
+        .readme-close:hover { background: #ffcc00; color: #1a1a00; }
+
+        .readme-print {
+            margin-right: 8px;
+            border-color: #d4a73a;
+            color: #ffcc00;
+        }
+
+        /* Print only the game guide: hide everything else, unclip the dialog body */
+        @media print {
+            body.printing-readme > *:not(#readme-dialog) { display: none !important; }
+
+            body.printing-readme #readme-dialog {
+                display: block;
+                position: static;
+                width: auto;
+                max-height: none;
+                border: none;
+                padding: 0;
+                background: #fff;
+                color: #000;
+            }
+
+            body.printing-readme #readme-dialog::backdrop { display: none; }
+            body.printing-readme .readme-close { display: none !important; }
+
+            body.printing-readme .readme-body {
+                overflow: visible;
+                max-height: none;
+                padding-right: 0;
+                font-size: 11pt;
+                line-height: 1.5;
+                color: #000;
+            }
+
+            body.printing-readme #readme-dialog h2,
+            body.printing-readme .readme-body h3 {
+                color: #000;
+                border-color: #999;
+            }
+
+            body.printing-readme .readme-body th {
+                background: #eee;
+                color: #000;
+            }
+
+            body.printing-readme .readme-body tr:nth-child(even) td { background: #f7f7f7; }
+
+            body.printing-readme .readme-body th,
+            body.printing-readme .readme-body td { border-color: #999; }
+
+            body.printing-readme .readme-body code {
+                background: #f0f0f0;
+                border-color: #bbb;
+                color: #000;
+            }
+
+            body.printing-readme .readme-body b { color: #000; }
+            body.printing-readme .readme-body h3 { page-break-after: avoid; }
+            body.printing-readme .readme-body table { page-break-inside: avoid; }
+        }
         
         button {
             background: linear-gradient(to bottom, #ffcc00, #ff9800);
@@ -1693,6 +1828,7 @@
         <h2 id="escape-menu-title">PAUSED</h2>
         <div class="escape-menu-actions">
             <button id="resume-button">Resume Game</button>
+            <button id="open-readme-button">📖 Game Guide (README)</button>
             <button id="open-sheets-button">Character Sheets</button>
             <button id="toggle-layout-edit-button" aria-pressed="false">Enable Layout Editing</button>
             <button id="reset-layout-button">Restore Default Layout</button>
@@ -1723,6 +1859,131 @@
             Layout editing is off. Turn it on to drag or resize game panels.
         </p>
         <p id="save-status" class="save-status" role="status" aria-live="polite"></p>
+    </dialog>
+
+    <dialog id="readme-dialog" aria-labelledby="readme-dialog-title">
+        <button id="readme-close-top" type="button" class="readme-close" aria-label="Close guide">✕ Close</button>
+        <button id="readme-print-top" type="button" class="readme-close readme-print" aria-label="Print guide">🖨 Print</button>
+        <h2 id="readme-dialog-title">📖 PixelBear's Dungeon Crawler — Game Guide</h2>
+        <div class="readme-body">
+
+        <h3>🎯 Goal</h3>
+        <p>Guide a party of up to 6 adventurers through an endless dungeon. Explore, fight monsters, collect treasure, and take the stairs (<code>&gt;</code>) ever deeper. Every 5th floor is a boss floor. The game ends when the whole party falls.</p>
+
+        <h3>🚀 Quick start</h3>
+        <ol>
+            <li>Type each player's <b>name</b> at the top of their sheet and pick a <b>class</b> from the dropdown.</li>
+            <li>The GM may enter <b>starting points per player</b> in Party Setup; spend them by left-clicking stats on the sheet (right-click reclaims).</li>
+            <li>Pick <b>Difficulty</b> and <b>Formation</b> in Party Setup (locked after the first move).</li>
+            <li>Tick each player's <b>Ready</b> box to lock them in. When all are ready, move to begin!</li>
+        </ol>
+
+        <h3>⌨ Controls</h3>
+        <table>
+            <tr><th>Key</th><th>Action</th></tr>
+            <tr><td>W A S D / Arrows</td><td>Move (10 spaces per turn, up to 2 unused carry over)</td></tr>
+            <tr><td>F</td><td>Basic attack — nearest monster in range</td></tr>
+            <tr><td>1</td><td>Class attack (see Combat below)</td></tr>
+            <tr><td>2</td><td>Class spell — costs a spell charge</td></tr>
+            <tr><td>3</td><td>Class power attack — has a cooldown</td></tr>
+            <tr><td>R</td><td>Rest: heal 30% max HP and restore spell charges (ends turn)</td></tr>
+            <tr><td>G</td><td>Guard: react to monsters within 2 spaces at turn end (needs full HP, 2 moves). A Cleric with 3+ moves standing next to a fallen ally revives them instead</td></tr>
+            <tr><td>E</td><td>End turn (monsters then act)</td></tr>
+            <tr><td>Esc</td><td>This pause menu</td></tr>
+        </table>
+
+        <h3>🗺 Map key</h3>
+        <table>
+            <tr><th>Symbol</th><th>Meaning</th></tr>
+            <tr><td><code>@ 1 2 3 4 5</code></td><td>Party members, in their player colors. The blinking one is the active player</td></tr>
+            <tr><td><code>#</code> / <code>▓</code></td><td>Wall — impassable (style varies by biome)</td></tr>
+            <tr><td><code>.</code> / <code>·</code></td><td>Floor — walkable</td></tr>
+            <tr><td><code>S</code></td><td>Start — where the party entered this floor</td></tr>
+            <tr><td><code>+</code></td><td>Door — walk into it to open/close; some are locked and need an Iron Key 🗝</td></tr>
+            <tr><td><code>M</code></td><td>Monster — see Bestiary below; hover for a tooltip with HP</td></tr>
+            <tr><td><code>$</code></td><td>Coin — small treasure</td></tr>
+            <tr><td><code>%</code></td><td>Gem — medium treasure</td></tr>
+            <tr><td><code>&amp;</code></td><td>Relic — large treasure</td></tr>
+            <tr><td><code>P</code></td><td>Power Item — +5 basic damage, +2 ability damage, +60 XP, permanent</td></tr>
+            <tr><td><code>^</code></td><td>Trap — steps deal 2–6 damage; visible once discovered</td></tr>
+            <tr><td><code>≡</code></td><td>Chasm — impassable gap</td></tr>
+            <tr><td><code>~</code></td><td>Water — slows movement through it</td></tr>
+            <tr><td><code>Θ</code></td><td>Shrine — stand on it to revive one fallen ally at 50% HP (one use per shrine)</td></tr>
+            <tr><td><code>&gt;</code></td><td>Exit — stairs down to the next dungeon level</td></tr>
+            <tr><td>🧪 📜 ⚡ 🍃 🗝</td><td>Floor items — walk over to pick up, use from the Party Load panel</td></tr>
+        </table>
+
+        <h3>🧙 Character classes</h3>
+        <table>
+            <tr><th>Class</th><th>HP</th><th>AC</th><th>Role</th><th>Key stat</th></tr>
+            <tr><td>⚔ <b>Fighter</b> (Human)</td><td>15</td><td>14</td><td>Front-line tank; melee AoE power</td><td>Strength</td></tr>
+            <tr><td>🏹 <b>Archer</b> (Elf)</td><td>13</td><td>13</td><td>Long-range sniper (range 5); multi-target volleys</td><td>Dexterity</td></tr>
+            <tr><td>🗡 <b>Rogue</b> (Elf)</td><td>12</td><td>12</td><td>Burst melee damage; poison; crits</td><td>Dexterity</td></tr>
+            <tr><td>🔮 <b>Wizard</b> (Gnome)</td><td>10</td><td>10</td><td>Ranged nuker; splash damage</td><td>Intelligence</td></tr>
+            <tr><td>✚ <b>Cleric</b> (Dwarf)</td><td>14</td><td>16</td><td>Healer and reviver; radiant smite</td><td>Wisdom</td></tr>
+        </table>
+
+        <h3>⚔ Combat system</h3>
+        <p>Each class has three abilities, on the <b>1 / 2 / 3</b> keys or the purple buttons in Player Options:</p>
+        <table>
+            <tr><th>Class</th><th>1 — Attack</th><th>2 — Spell (charge)</th><th>3 — Power (cooldown)</th></tr>
+            <tr><td>Fighter</td><td>Sword Strike 1d8, melee</td><td>Battle Cry 1d4 — blesses self (+2 Atk, 3 turns) and hits all adjacent</td><td>Cleave 2d8 — hits every adjacent enemy (3-turn cd)</td></tr>
+            <tr><td>Archer</td><td>Bow Shot 1d8, range 5</td><td>Pinning Shot 1d6, range 5 — slows target 3 turns</td><td>Arrow Volley 2d8 — up to 3 enemies in range (3-turn cd)</td></tr>
+            <tr><td>Rogue</td><td>Dagger Slash 1d6, melee</td><td>Poison Vial 1d6, range 3 — poisons 3 turns</td><td>Backstab 3d6 — may crit for +50% (3-turn cd)</td></tr>
+            <tr><td>Wizard</td><td>Arcane Bolt 1d10, range 4</td><td>Fireball 2d6, range 4 — splash half to adjacent</td><td>Lightning Storm 3d10 — strongest enemy in range 5 (4-turn cd)</td></tr>
+            <tr><td>Cleric</td><td>Mace Blow 1d6, melee</td><td>Healing Word 2d4, range 2 — heals most wounded ally (or self)</td><td>Divine Smite 2d8 radiant (3-turn cd)</td></tr>
+        </table>
+        <p><b>Damage formula:</b> dice + stat modifier ((stat − 10) ÷ 2) + level bonus (+1 per 2 levels) + Power Items (+2 each). Spending attribute points on your class's key stat directly raises your damage. Every roll is written to the Adventure Log and echoed in the Dice Roller panel.</p>
+        <p><b>Spell charges:</b> 2 + level÷3 + casting-stat modifier. Restored by Resting or descending stairs. <b>Power attacks</b> recharge after their cooldown, shown under the ability buttons.</p>
+        <p>Walking into a monster also attacks it (basic melee). Monsters strike back when attacked in melee, and nearby allies give +2 damage each (max +6) and improve your defense.</p>
+
+        <h3>👹 Bestiary</h3>
+        <table>
+            <tr><th>Monster</th><th>HP</th><th>Atk</th><th>Behavior</th></tr>
+            <tr><td>🐀 Giant Rat</td><td>8</td><td>2</td><td>Pack hunter — advances when another rat is near</td></tr>
+            <tr><td>💀 Skeleton</td><td>10</td><td>3</td><td>Patrols and wanders toward noise</td></tr>
+            <tr><td>👹 Orc</td><td>12</td><td>4</td><td>Brute — charges when close</td></tr>
+            <tr><td>👺 Goblin</td><td>9</td><td>3</td><td>Coward — flees when adjacent</td></tr>
+            <tr><td>🐍 Viper</td><td>7</td><td>5</td><td>Ranged spitter — attacks from up to 4 spaces</td></tr>
+            <tr><td>💀 Dark Knight</td><td>18</td><td>5</td><td>Heavy brute</td></tr>
+            <tr><td>🐉 Manticore</td><td>20</td><td>6</td><td>Ranged, dangerous</td></tr>
+            <tr><td>🐉 Dragon</td><td>30</td><td>8</td><td>Apex brute</td></tr>
+        </table>
+        <p>Monster HP and damage scale with dungeon depth and difficulty. Every 5th floor holds a <b>boss</b> (Bone Tyrant, Molten Colossus, Frost Lich, Swarm Queen, Shadow Dragon) with massive HP.</p>
+
+        <h3>🧪 Items &amp; status effects</h3>
+        <ul>
+            <li>🧪 <b>Healing Potion</b> — restores 20 HP • 📜 <b>Scroll of Blessing</b> — +2 Atk, 5 turns • ⚡ <b>Potion of Haste</b> — +2 movement, 4 turns • 🍃 <b>Antidote</b> — cures poison • 🗝 <b>Iron Key</b> — opens a locked door</li>
+            <li><b>Poison</b> ☠ damage each turn • <b>Stun</b> blocks acting • <b>Bless</b> +Atk • <b>Haste</b> +movement • <b>Slow</b> −movement. The active sheet's border tints with the effect color.</li>
+        </ul>
+
+        <h3>🎲 Dice roller</h3>
+        <p>Under Player Options: pick dice count, type (d4–d%), modifier, then <b>Roll</b> — or <b>Adv</b>/<b>Dis</b> for advantage/disadvantage d20s. Rolls are cryptographically random, logged to the Adventure Log, shared to multiplayer chat, and natural 20/1 highlighted. The game's own ability rolls appear here too.</p>
+
+        <h3>💀 Death &amp; difficulty</h3>
+        <ul>
+            <li><b>Easy / Normal</b>: downed members may make a death save (30% to cling on at 25% HP). Shrines Θ and Clerics can revive the fallen.</li>
+            <li><b>Hard / Nightmare</b>: permadeath — the fallen stay dead (remove them with the × at the bottom of their sheet). More and stronger monsters, less XP.</li>
+        </ul>
+
+        <h3>📈 Leveling</h3>
+        <p>XP comes from movement (3), kills (10–25 + Wis bonus), and Power Items (60). Each level: +2 to stats you invested starting points in, +0.5 to the rest, full heal, higher max HP/Atk/Def. XP needed grows with level and shrinks with party size.</p>
+
+        <h3>🌐 Multiplayer</h3>
+        <ol>
+            <li>Run the local server (<code>npm start</code>), open the page on each computer.</li>
+            <li>One player clicks <b>Network → Host Game</b> (optionally as spectator GM). Others enter the Host ID and <b>Join</b>.</li>
+            <li>Each joiner is assigned a party member. Everyone ticks <b>Ready</b> — the first move unlocks only when all are ready.</li>
+            <li>The host is authoritative; actions are confirmed or rolled back. Disconnected players can rejoin and get their character back, with chat history replayed.</li>
+            <li>Optional <b>turn timer</b> auto-ends slow turns. Party chat and dice rolls are shared.</li>
+        </ol>
+
+        <h3>💾 Saving</h3>
+        <p>Esc menu → pick a save slot name → Save / Load / Delete. Loading warns before replacing your current game. Saves live in your browser's local storage.</p>
+
+        </div>
+        <button id="readme-close-bottom" type="button" class="readme-close" style="margin-top:10px;">✕ Close</button>
+        <button id="readme-print-bottom" type="button" class="readme-close readme-print" style="margin-top:10px;">🖨 Print</button>
     </dialog>
 
     <dialog id="network-dialog" aria-labelledby="network-dialog-title">
