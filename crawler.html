@@ -45,6 +45,8 @@
         }
         
         .dungeon-view {
+            display: grid;
+            grid-template-rows: auto auto 1fr auto;
             background: #0a0a0a;
             border: 3px solid #ffcc00;
             padding: 5px;
@@ -59,12 +61,40 @@
 
         .dungeon-content {
             display: grid;
-            grid-template-columns: minmax(0, 1.2fr) minmax(270px, 0.8fr);
+            grid-template-columns: minmax(190px, 210px) minmax(0, 1fr) minmax(270px, 340px);
             align-items: start;
             gap: 8px;
+            min-height: 0;
+        }
+
+        .left-column {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+            align-content: start;
+            min-width: 0;
         }
 
         .map-column {
+            display: grid;
+            grid-template-rows: auto 1fr auto auto;
+            min-width: 0;
+            min-height: 0;
+        }
+
+        .right-column {
+            display: grid;
+            grid-template-rows: 1fr auto;
+            gap: 8px;
+            min-width: 0;
+            min-height: 0;
+            max-height: calc(100vh - 120px);
+            overflow: hidden;
+            position: relative;
+        }
+
+        .bottom-row {
+            margin-top: 8px;
             min-width: 0;
         }
 
@@ -123,19 +153,12 @@
         
         .action-legend {
             display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 3px;
             width: 100%;
             padding: 5px;
             border: 3px solid #4a4a6a;
             background: #10101b;
-        }
-
-        .map-actions-row {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr);
-            gap: 5px;
-            margin-top: 0;
         }
 
         .game-log-section {
@@ -145,7 +168,12 @@
         .game-log-section .panel-title {
             margin-bottom: 4px;
             padding-bottom: 4px;
-            font-size: 1rem;
+            font-size: 0.85rem;
+        }
+
+        .log-panel {
+            min-height: 80px;
+            max-height: 140px;
         }
 
         .action-legend h2 {
@@ -332,9 +360,12 @@
         }
 
         .character-sheets {
+            display: flex;
+            flex-direction: column;
             width: 100%;
-            max-width: 1700px;
-            margin-top: 22px;
+            min-height: 0;
+            max-height: 100%;
+            overflow: hidden;
         }
 
         .character-sheet-layout {
@@ -345,12 +376,12 @@
         }
 
         .party-setup {
-            position: sticky;
-            top: 12px;
-            padding: 14px;
+            padding: 10px;
             border: 2px solid #4a4a6a;
             border-radius: 8px;
             background: #141421;
+            overflow-y: auto;
+            max-height: 360px;
         }
 
         .party-setup label {
@@ -426,12 +457,15 @@
 
         .sheet-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 14px;
+            grid-template-columns: 1fr;
+            gap: 8px;
+            overflow-y: auto;
+            max-height: 100%;
+            padding-right: 4px;
         }
 
         .character-sheet {
-            padding: 14px;
+            padding: 8px;
             border: 2px solid #4a4a6a;
             border-left: 5px solid var(--member-color, #ffcc00);
             border-radius: 8px;
@@ -439,23 +473,26 @@
         }
 
         .character-sheet.active {
-            box-shadow: 0 0 0 2px rgba(255, 204, 0, 0.32);
+            border-color: #ffe14d;
+            outline: 3px solid #ffe14d;
+            outline-offset: 1px;
+            background: #1a1a28;
         }
 
         .character-sheet h3 {
-            margin-bottom: 10px;
+            margin-bottom: 6px;
             color: var(--member-color, #ffcc00);
         }
 
         .sheet-heading-row {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) minmax(130px, auto);
+            grid-template-columns: minmax(0, 1fr) minmax(110px, auto);
             align-items: end;
-            gap: 8px;
-            margin-bottom: 10px;
+            gap: 6px;
+            margin-bottom: 6px;
         }
 
-        .sheet-heading-row h3 { margin: 0; }
+        .sheet-heading-row h3 { margin: 0; font-size: 0.95rem; }
 
         .sheet-class-points {
             display: grid;
@@ -465,21 +502,19 @@
         }
 
         .sheet-class-points label,
-        .attribute-allocation label,
-        .sheet-fields label {
+        .attribute-allocation label {
             display: flex;
             flex-direction: column;
-            gap: 3px;
+            gap: 2px;
             color: #d6d0bf;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
         }
 
         .sheet-class-points select,
-        .attribute-allocation input,
-        .sheet-fields input {
+        .attribute-allocation input {
             min-width: 0;
             width: 100%;
-            padding: 6px;
+            padding: 4px;
             border: 1px solid #65657b;
             border-radius: 4px;
             background: #0a0a0a;
@@ -496,40 +531,55 @@
         }
 
         .remaining-points {
-            min-width: 40px;
-            padding-bottom: 6px;
+            min-width: 36px;
+            padding-bottom: 4px;
             color: #ffcc00;
             font-weight: bold;
             text-align: center;
+            font-size: 0.8rem;
         }
 
-        .sheet-fields {
+        .sheet-stats-row {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 8px;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 4px;
+            margin-top: 6px;
         }
+
+        .sheet-stat {
+            display: flex;
+            justify-content: space-between;
+            gap: 4px;
+            padding: 3px 5px;
+            border: 1px solid #4a4a6a;
+            border-radius: 4px;
+            background: #0a0a0a;
+            font-size: 0.7rem;
+        }
+
+        .sheet-stat-label { color: #b9b3a3; }
+        .sheet-stat-value { color: #fff; font-weight: bold; }
 
         .attribute-allocation {
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 8px;
-            margin-top: 10px;
+            gap: 5px;
+            margin-top: 8px;
         }
 
         .attribute-allocation input:disabled,
-        .sheet-class-points select:disabled,
-        .sheet-fields input:disabled {
+        .sheet-class-points select:disabled {
             opacity: 0.62;
         }
 
         .sheet-status {
-            margin-top: 9px;
+            margin-top: 6px;
             color: #ffcc00;
-            font-size: 0.8rem;
+            font-size: 0.72rem;
         }
 
         .sheet-xp {
-            margin-top: 9px;
+            margin-top: 6px;
             color: #ffcc00;
         }
 
@@ -770,11 +820,11 @@
 
         .hp-bar {
             position: relative;
-            height: 14px;
+            height: 12px;
             background: #222;
             border: 1px solid #4a4a6a;
             border-radius: 3px;
-            margin: 6px 0 10px;
+            margin: 4px 0 6px;
             overflow: hidden;
         }
 
@@ -797,14 +847,14 @@
         .status-list {
             display: flex;
             flex-wrap: wrap;
-            gap: 5px;
-            margin-bottom: 10px;
+            gap: 3px;
+            margin-bottom: 4px;
         }
 
         .status-badge {
-            padding: 2px 6px;
+            padding: 1px 4px;
             border-radius: 3px;
-            font-size: 0.65rem;
+            font-size: 0.6rem;
             font-weight: bold;
             text-transform: uppercase;
         }
@@ -816,8 +866,8 @@
         .status-stun { background: #4a1a1a; color: #ff5252; }
 
         .sheet-avatar {
-            font-size: 1.4rem;
-            margin-right: 6px;
+            font-size: 1.2rem;
+            margin-right: 5px;
         }
 
         .down-tag { color: #ef5350; font-weight: bold; }
@@ -989,19 +1039,36 @@
             font-size: 0.75rem;
         }
         
+        @media (max-width: 1100px) {
+            .dungeon-content {
+                grid-template-columns: minmax(170px, 190px) minmax(0, 1fr) minmax(230px, 280px);
+            }
+        }
+
         @media (max-width: 900px) {
+            .dungeon-content {
+                grid-template-columns: minmax(0, 1fr);
+            }
+
+            .left-column {
+                order: 2;
+            }
+
+            .map-column {
+                order: 1;
+            }
+
+            .right-column {
+                order: 3;
+                max-height: none;
+            }
+
             .character-sheet-layout {
                 grid-template-columns: minmax(0, 1fr);
             }
 
             .party-setup {
                 position: static;
-            }
-        }
-
-        @media (max-width: 720px) {
-            .dungeon-content {
-                grid-template-columns: minmax(0, 1fr);
             }
         }
 
@@ -1019,6 +1086,31 @@
             <h1 class="game-brand">PixelBear's Ascii Dungeon Crawler</h1>
             <div id="turn-order-bar" class="turn-order-bar"></div>
             <div class="dungeon-content">
+                <section class="left-column" aria-label="Controls and info">
+                    <section class="action-legend" aria-label="Player actions">
+                        <h2>PLAYER OPTIONS</h2>
+                        <button id="move-up" class="action-button" aria-label="Move up"><span class="action-icon icon-move">↑</span> Up<span class="action-key">↑ / W</span></button>
+                        <button id="move-left" class="action-button" aria-label="Move left"><span class="action-icon icon-move">←</span> Left<span class="action-key">← / A</span></button>
+                        <button id="move-down" class="action-button" aria-label="Move down"><span class="action-icon icon-move">↓</span> Down<span class="action-key">↓ / S</span></button>
+                        <button id="move-right" class="action-button" aria-label="Move right"><span class="action-icon icon-move">→</span> Right<span class="action-key">→ / D</span></button>
+                        <button id="attack-btn" class="action-button" aria-label="Attack"><span class="action-icon icon-attack">⚔</span> Attack<span class="action-key">F</span></button>
+                        <button id="rest-btn" class="action-button" aria-label="Rest and heal"><span class="action-icon icon-rest">✚</span> Rest<span class="action-key">R</span></button>
+                        <button id="guard-btn" class="action-button" aria-label="Stand guard"><span class="action-icon icon-guard">▣</span> Guard<span class="action-key">G</span></button>
+                        <button id="end-turn-btn" class="action-button" aria-label="End turn"><span class="action-icon icon-end">≫</span> End Turn<span class="action-key">E</span></button>
+                    </section>
+                    <section id="chat-section" aria-label="Chat">
+                        <h2 class="panel-title" style="font-size:0.85rem;">PARTY CHAT</h2>
+                        <div id="chat-log" class="chat-log"></div>
+                        <form id="chat-form" class="chat-form">
+                            <input id="chat-input" type="text" placeholder="Send a message..." maxlength="200" autocomplete="off">
+                            <button type="submit">Send</button>
+                        </form>
+                    </section>
+                    <section id="minimap-section" aria-label="Minimap">
+                        <h2 class="panel-title" style="font-size:0.85rem;">MINIMAP</h2>
+                        <div id="minimap" class="minimap"></div>
+                    </section>
+                </section>
                 <section class="map-column" aria-label="Dungeon map">
                     <h3 id="level-title">DUNGEON LEVEL 1</h3>
                     <div id="dungeon-map" class="dungeon-map">
@@ -1031,50 +1123,68 @@
                             <span class="legend-label">Players</span>
                             <span id="player-legend-markers" class="player-legend-markers"></span>
                         </div>
-                    <div class="legend-item"><span class="legend-symbol legend-wall">#</span> Wall</div>
-                    <div class="legend-item"><span class="legend-symbol legend-start">S</span> Start</div>
-                    <div class="legend-item"><span class="legend-symbol legend-door">+</span> Door</div>
-                    <div class="legend-item"><span class="legend-symbol legend-monster">M</span> Monster</div>
-                    <div class="legend-item"><span class="legend-symbol legend-treasure">$</span> Coin</div>
-                    <div class="legend-item"><span class="legend-symbol legend-treasure">%</span> Gem</div>
-                    <div class="legend-item"><span class="legend-symbol legend-treasure">&amp;</span> Relic</div>
-                    <div class="legend-item"><span class="legend-symbol legend-power">P</span> Power Item</div>
-                    <div class="legend-item"><span class="legend-symbol legend-trap">^</span> Trap</div>
-                    <div class="legend-item"><span class="legend-symbol legend-chasm">≡</span> Chasm</div>
-                    <div class="legend-item"><span class="legend-symbol legend-water">~</span> Water</div>
-                    <div class="legend-item"><span class="legend-symbol legend-shrine">Θ</span> Shrine</div>
-                    <div class="legend-item"><span class="legend-symbol legend-exit">&gt;</span> Exit</div>
+                        <div class="legend-item"><span class="legend-symbol legend-wall">#</span> Wall</div>
+                        <div class="legend-item"><span class="legend-symbol legend-start">S</span> Start</div>
+                        <div class="legend-item"><span class="legend-symbol legend-door">+</span> Door</div>
+                        <div class="legend-item"><span class="legend-symbol legend-monster">M</span> Monster</div>
+                        <div class="legend-item"><span class="legend-symbol legend-treasure">$</span> Coin</div>
+                        <div class="legend-item"><span class="legend-symbol legend-treasure">%</span> Gem</div>
+                        <div class="legend-item"><span class="legend-symbol legend-treasure">&amp;</span> Relic</div>
+                        <div class="legend-item"><span class="legend-symbol legend-power">P</span> Power Item</div>
+                        <div class="legend-item"><span class="legend-symbol legend-trap">^</span> Trap</div>
+                        <div class="legend-item"><span class="legend-symbol legend-chasm">≡</span> Chasm</div>
+                        <div class="legend-item"><span class="legend-symbol legend-water">~</span> Water</div>
+                        <div class="legend-item"><span class="legend-symbol legend-shrine">Θ</span> Shrine</div>
+                        <div class="legend-item"><span class="legend-symbol legend-exit">&gt;</span> Exit</div>
                     </div>
                 </section>
-                <div class="map-actions-row">
-                    <section class="action-legend" aria-label="Player actions">
-                        <h2>PLAYER OPTIONS</h2>
-                        <button id="move-up" class="action-button" aria-label="Move up"><span class="action-icon icon-move">↑</span> Up<span class="action-key">↑ / W</span></button>
-                        <button id="move-left" class="action-button" aria-label="Move left"><span class="action-icon icon-move">←</span> Left<span class="action-key">← / A</span></button>
-                        <button id="move-down" class="action-button" aria-label="Move down"><span class="action-icon icon-move">↓</span> Down<span class="action-key">↓ / S</span></button>
-                        <button id="move-right" class="action-button" aria-label="Move right"><span class="action-icon icon-move">→</span> Right<span class="action-key">→ / D</span></button>
-                        <button id="attack-btn" class="action-button" aria-label="Attack"><span class="action-icon icon-attack">⚔</span> Attack<span class="action-key">F</span></button>
-                        <button id="rest-btn" class="action-button" aria-label="Rest and heal"><span class="action-icon icon-rest">✚</span> Rest<span class="action-key">R</span></button>
-                        <button id="guard-btn" class="action-button" aria-label="Stand guard"><span class="action-icon icon-guard">▣</span> Guard<span class="action-key">G</span></button>
-                        <button id="end-turn-btn" class="action-button" aria-label="End turn"><span class="action-icon icon-end">≫</span> End Turn<span class="action-key">E</span></button>
+                <section class="right-column" aria-label="Character sheets">
+                    <section id="character-sheets" class="character-sheets">
+                        <h2 class="panel-title" style="font-size:0.95rem; padding-bottom:6px; margin-bottom:8px;">PARTY SHEETS</h2>
+                        <div id="character-sheet-list" class="sheet-grid"></div>
                     </section>
+                    <section class="party-setup">
+                        <h3 style="color:#ffcc00; margin-bottom:6px;">PARTY SETUP</h3>
+                        <label for="gm-starting-points">GM starting points per player
+                            <input id="gm-starting-points" type="number" min="0" max="544" step="1" placeholder="Enter points">
+                        </label>
+                        <label for="difficulty-select">Difficulty
+                            <select id="difficulty-select">
+                                <option value="easy">Easy</option>
+                                <option value="normal" selected>Normal</option>
+                                <option value="hard">Hard (permadeath)</option>
+                                <option value="nightmare">Nightmare (permadeath)</option>
+                            </select>
+                        </label>
+                        <label for="formation-select">Formation
+                            <select id="formation-select">
+                                <option value="cluster" selected>Cluster</option>
+                                <option value="line">Line</option>
+                                <option value="wedge">Wedge</option>
+                                <option value="spread">Spread</option>
+                            </select>
+                        </label>
+                        <p>DM distributes points per character before the first move. Unused points are forfeited on the first move. On level, +2 to invested stats and +0.5 to all others.</p>
+                        <div class="sheet-party-actions">
+                            <button id="add-member-btn" style="background:#4caf50;">+ Add Player</button>
+                            <button id="remove-member-btn" style="background:#f44336;" disabled>– Remove Active</button>
+                        </div>
+                        <div class="network-section">
+                            <button id="network-button" type="button" style="background:#2196f3; color:#fff;">Network</button>
+                            <span id="network-status" class="network-status">Offline</span>
+                        </div>
+                        <div id="inventory-section">
+                            <h4 style="color:#ffcc00; margin:8px 0 4px;">INVENTORY</h4>
+                            <div id="inventory-panel">No items.</div>
+                        </div>
+                    </section>
+                </section>
+            </div>
+            <div class="bottom-row">
                 <section class="game-log-section" aria-label="Game events">
-                    <h2 class="panel-title">ADVENTURE LOG</h2>
+                    <h2 class="panel-title" style="font-size:0.85rem;">ADVENTURE LOG</h2>
                     <div id="game-log" class="log-panel"></div>
                 </section>
-                <section id="chat-section" aria-label="Chat">
-                    <h2 class="panel-title" style="font-size:1rem;">PARTY CHAT</h2>
-                    <div id="chat-log" class="chat-log"></div>
-                    <form id="chat-form" class="chat-form">
-                        <input id="chat-input" type="text" placeholder="Send a message..." maxlength="200" autocomplete="off">
-                        <button type="submit">Send</button>
-                    </form>
-                </section>
-                <section id="minimap-section" aria-label="Minimap">
-                    <h2 class="panel-title" style="font-size:1rem;">MINIMAP</h2>
-                    <div id="minimap" class="minimap"></div>
-                </section>
-                </div>
             </div>
             <div id="mobile-controls" class="mobile-controls" aria-label="Mobile controls">
                 <div class="dpad">
@@ -1092,7 +1202,6 @@
                     <button id="mobile-end" aria-label="End turn">≫</button>
                 </div>
             </div>
-            </div>
         </div>
     </div>
 
@@ -1101,50 +1210,6 @@
             <h2>Something went wrong</h2>
             <p id="error-message">An unexpected error occurred.</p>
             <button id="reset-from-error">Reset Game</button>
-        </div>
-    </section>
-
-    <section id="character-sheets" class="character-sheets">
-        <h2 class="panel-title">PARTY CHARACTER SHEETS</h2>
-        <div class="character-sheet-layout">
-            <section class="party-setup">
-                <h3 style="color:#ffcc00; margin-bottom:10px;">PARTY SETUP</h3>
-                <label for="gm-starting-points">GM starting points per player
-                    <input id="gm-starting-points" type="number" min="0" max="544" step="1" placeholder="Enter points">
-                </label>
-                <label for="difficulty-select">Difficulty
-                    <select id="difficulty-select">
-                        <option value="easy">Easy</option>
-                        <option value="normal" selected>Normal</option>
-                        <option value="hard">Hard (permadeath)</option>
-                        <option value="nightmare">Nightmare (permadeath)</option>
-                    </select>
-                </label>
-                <label for="formation-select">Formation
-                    <select id="formation-select">
-                        <option value="cluster" selected>Cluster</option>
-                        <option value="line">Line</option>
-                        <option value="wedge">Wedge</option>
-                        <option value="spread">Spread</option>
-                    </select>
-                </label>
-                <p>DM distributes points per character before the first move. Unused points are forfeited on the first move. On level, +2 to invested stats and +0.5 to all others.</p>
-                <div class="sheet-party-actions">
-                    <button id="add-member-btn" style="background:#4caf50;">+ Add Player</button>
-                    <button id="remove-member-btn" style="background:#f44336;" disabled>– Remove Active</button>
-                </div>
-                <div class="network-section">
-                    <button id="network-button" type="button" style="background:#2196f3; color:#fff;">Network</button>
-                    <span id="network-status" class="network-status">Offline</span>
-                </div>
-                <div id="inventory-section">
-                    <h4 style="color:#ffcc00; margin:12px 0 6px;">INVENTORY</h4>
-                    <div id="inventory-panel">No items.</div>
-                </div>
-            </section>
-            <div>
-                <div id="character-sheet-list" class="sheet-grid"></div>
-            </div>
         </div>
     </section>
 

@@ -27,6 +27,16 @@ Then open the printed local URL in your browser (e.g. http://localhost:8080/craw
 
 On mobile devices, the on-screen D-pad and action buttons replace the keyboard shortcuts.
 
+## User interface
+
+The main game screen is divided into three columns:
+
+- **Left column** – player action buttons, party chat, and minimap.
+- **Center column** – the ASCII dungeon map, turn-order timeline, and map legend.
+- **Right column** – party character sheets (compact horizontal stat rows) and the party setup / inventory panel.
+
+The currently active character sheet is outlined in **yellow** so you always know whose turn it is. Character sheets use a compact horizontal stat format while playing; the larger blocky sheet format is reserved for printing.
+
 ## Multiplayer
 
 1. Start the server on one computer.

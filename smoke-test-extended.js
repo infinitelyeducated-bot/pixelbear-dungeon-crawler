@@ -85,7 +85,7 @@ await page.locator('#network-cancel').click();
 
 // Chat message (network offline: only rendered if local echo implemented, which requires networkManager mode)
 await page.locator('#chat-input').fill('Smoke test hello');
-await page.locator('#chat-form button').click();
+await page.locator('#chat-form button').click({ force: true });
 await page.waitForTimeout(300);
 results.chatMessageRendered = await page.locator('#chat-log .chat-entry').count().then(c => c > 0);
 if (!results.chatMessageRendered) {

@@ -331,7 +331,6 @@ function buildCharacterSheet(game, member, index) {
     card.className = `character-sheet ${member === activeMember(game) ? 'active' : ''}`;
     card.dataset.memberId = String(member.id);
     card.style.setProperty('--member-color', member.color);
-    card.style.borderColor = member === activeMember(game) ? member.color : '#4a4a6a';
 
     const header = document.createElement('div');
     header.className = 'sheet-heading-row';
@@ -398,52 +397,35 @@ function buildCharacterSheet(game, member, index) {
         }
     }
 
-    const fields = document.createElement('div');
-    fields.className = 'sheet-fields';
-    const addInput = (label, key, value, options = {}) => {
-        const fieldLabel = document.createElement('label');
-        fieldLabel.textContent = label;
-        const input = document.createElement('input');
-        input.type = options.type || 'text';
-        input.value = value;
-        input.dataset.memberId = String(member.id);
-        input.dataset.field = key;
-        if (options.type === 'number') {
-            input.min = String(options.min);
-            input.max = String(options.max);
-            input.step = '1';
-        }
-        input.disabled = Boolean(options.disabled);
-        fieldLabel.appendChild(input);
-        fields.appendChild(fieldLabel);
+    const statsRow = document.createElement('div');
+    statsRow.className = 'sheet-stats-row';
+    const stat = (label, value) => {
+        const div = document.createElement('div');
+        div.className = 'sheet-stat';
+        div.innerHTML = `<span class="sheet-stat-label">${label}</span><span class="sheet-stat-value">${value}</span>`;
+        return div;
     };
-    addInput('Name', 'name', member.name);
-    addInput('Race', 'race', member.race);
-    addInput('HP', 'hp', member.hp, { type: 'number', min: 0, max: member.maxHp });
-    addInput('Maximum HP', 'maxHp', member.maxHp, { type: 'number', min: 1, max: 9999, disabled: true });
-    addInput('Armor Class', 'armorClass', member.armorClass, { type: 'number', min: 0, max: 99, disabled: true });
-    addInput('Attack', 'attack', member.attack, { type: 'number', min: 1, max: 999, disabled: true });
-    addInput('Defense', 'defense', member.defense, { type: 'number', min: 1, max: 999, disabled: true });
-    addInput('Treasure', 'treasure', member.treasure, { type: 'number', min: 0, max: 999999999, disabled: true });
-    addInput('Treasures Found', 'treasureCount', member.treasureCount, { type: 'number', min: 0, max: 999999, disabled: true });
-    addInput('Power Items', 'powerItems', member.powerItems, { type: 'number', min: 0, max: 999999, disabled: true });
-    addInput('Item Damage Bonus', 'itemDamageBonus', `+${member.powerItems * 5}`, { disabled: true });
-    addInput('Charisma', 'charisma', member.charisma, { type: 'number', min: 3, max: 99, disabled: true });
-    addInput('Level', 'level', member.level, { type: 'number', min: 1, max: MAX_CHARACTER_LEVEL, disabled: true });
-    addInput('Experience', 'xp', `${member.xp}/${experienceRequired(member, game.party.length)}`, { disabled: true });
-    addInput('Dungeon Level', 'dungeonLevel', member.dungeonLevel, { type: 'number', min: 1, max: 999, disabled: true });
-    addInput('Movement', 'movesRemaining', `${member.movesRemaining}/${member.movesPerTurn}`, { disabled: true });
-    addInput('Status', 'status', member.hp > 0 ? 'Alive' : 'Down', { disabled: true });
+    statsRow.append(
+        stat('AC', member.armorClass),
+        stat('Atk', member.attack),
+        stat('Def', member.defense),
+        stat('Lv', member.level),
+        stat('XP', `${member.xp}/${experienceRequired(member, game.party.length)}`),
+        stat('Mov', `${member.movesRemaining}/${member.movesPerTurn}`),
+        stat('DLv', member.dungeonLevel),
+        stat('Treasure', member.treasure),
+        stat('Items', member.powerItems)
+    );
 
     const attributes = document.createElement('div');
     attributes.className = 'attribute-allocation';
     for (const [key, label, baseValue] of [
-        ['initiative', 'Initiative', 0],
-        ['dexterity', 'Dexterity', 10],
-        ['intelligence', 'Intelligence', 10],
-        ['strength', 'Strength', 10],
-        ['constitution', 'Constitution', 10],
-        ['wisdom', 'Wisdom', 10]
+        ['initiative', 'Init', 0],
+        ['dexterity', 'Dex', 10],
+        ['intelligence', 'Int', 10],
+        ['strength', 'Str', 10],
+        ['constitution', 'Con', 10],
+        ['wisdom', 'Wis', 10]
     ]) {
         const fieldLabel = document.createElement('label');
         fieldLabel.textContent = label;
@@ -466,9 +448,9 @@ function buildCharacterSheet(game, member, index) {
 
     const summary = document.createElement('p');
     summary.className = 'sheet-status';
-    summary.textContent = `${member.pendingAttributePoints} point(s) available. Left-click a stat to spend one; right-click to reclaim one. Unused points are lost when moving.`;
+    summary.textContent = `${member.pendingAttributePoints} point(s) available. Left-click a stat to spend one; right-click to reclaim one.`;
 
-    card.append(header, hpBar, statusList, fields, attributes, summary);
+    card.append(header, hpBar, statusList, statsRow, attributes, summary);
     return card;
 }
 
