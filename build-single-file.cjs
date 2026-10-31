@@ -34,8 +34,8 @@ cut('network-status', /\s*<div id="network-status" class="network-status"[^>]*>O
 cut('network-dialog', /\s*<dialog id="network-dialog"[\s\S]*?<\/dialog>/);
 cut('guide multiplayer', /\s*<h3>🌐 Multiplayer<\/h3>\s*<ol>[\s\S]*?<\/ol>/);
 html = html.replace(/<title>[^<]*<\/title>/, '<title>Ascii Dungeon Crawler</title>');
-html = html.replace(/Run <b>Run_Game_PixelBear_Dungeon_Crawler\.cmd<\/b> in the game folder and use <b>http:\/\/localhost:8080\/crawler\.html<\/b>\./, 'This single-file edition should open by double-click; try another browser.');
-html = html.replace(/<li>The local server is not running\. Run <b>Run_Game_PixelBear_Dungeon_Crawler\.cmd<\/b> \(or <code>npm start<\/code>\)\.<\/li>/, '');
+html = html.replace(/Run <b>Run_Game_Server_PixelBear_Dungeon_Crawler\.cmd<\/b> in the game folder and use <b>http:\/\/localhost:8080\/crawler\.html<\/b>\./, 'This single-file edition should open by double-click; try another browser.');
+html = html.replace(/<li>The local server is not running\. Run <b>Run_Game_Server_PixelBear_Dungeon_Crawler\.cmd<\/b> \(or <code>npm start<\/code>\)\.<\/li>/, '');
 html = html.replace(/if \(!sessionStorage\.getItem\(key\) && location\.protocol !== 'file:'\)/, "if (!sessionStorage.getItem(key))");
 if (!/<script type="module" src="modules\/main\.js[^"]*"><\/script>/.test(html)) throw new Error('module script tag not found');
 html = html.replace(/<script type="module" src="modules\/main\.js[^"]*"><\/script>/, () => chunks);
