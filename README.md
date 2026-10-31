@@ -4,7 +4,7 @@ A party-based ASCII dungeon crawler that runs in the browser. Supports local pla
 
 ## Quick start
 
-Double-click **`Run_Game.cmd`**. It installs dependencies on first run, starts the local server and opens the game in your browser. Keep its window open while you play.
+Double-click **`Run_Game_PixelBear_Dungeon_Crawler.cmd`**. It installs dependencies on first run, starts the local server and opens the game in your browser. Keep its window open while you play.
 
 Or by hand:
 

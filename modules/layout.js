@@ -1,4 +1,4 @@
-import { LAYOUT_STORAGE_KEY, DEFAULT_LAYOUT_SETTINGS } from './config.js?v=mvvnjzeo';
+import { LAYOUT_STORAGE_KEY, DEFAULT_LAYOUT_SETTINGS } from './config.js?v=mvvqyzn5';
 
 export class LayoutManager {
     constructor() {

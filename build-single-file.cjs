@@ -34,8 +34,8 @@ cut('network-status', /\s*<div id="network-status" class="network-status"[^>]*>O
 cut('network-dialog', /\s*<dialog id="network-dialog"[\s\S]*?<\/dialog>/);
 cut('guide multiplayer', /\s*<h3>🌐 Multiplayer<\/h3>\s*<ol>[\s\S]*?<\/ol>/);
 html = html.replace(/<title>[^<]*<\/title>/, '<title>Ascii Dungeon Crawler</title>');
-html = html.replace(/Run <b>Run_Game\.cmd<\/b> in the game folder and use <b>http:\/\/localhost:8080\/crawler\.html<\/b>\./, 'This single-file edition should open by double-click; try another browser.');
-html = html.replace(/<li>The local server is not running\. Run <b>Run_Game\.cmd<\/b> \(or <code>npm start<\/code>\)\.<\/li>/, '');
+html = html.replace(/Run <b>Run_Game_PixelBear_Dungeon_Crawler\.cmd<\/b> in the game folder and use <b>http:\/\/localhost:8080\/crawler\.html<\/b>\./, 'This single-file edition should open by double-click; try another browser.');
+html = html.replace(/<li>The local server is not running\. Run <b>Run_Game_PixelBear_Dungeon_Crawler\.cmd<\/b> \(or <code>npm start<\/code>\)\.<\/li>/, '');
 html = html.replace(/if \(!sessionStorage\.getItem\(key\) && location\.protocol !== 'file:'\)/, "if (!sessionStorage.getItem(key))");
 if (!/<script type="module" src="modules\/main\.js[^"]*"><\/script>/.test(html)) throw new Error('module script tag not found');
 html = html.replace(/<script type="module" src="modules\/main\.js[^"]*"><\/script>/, () => chunks);
@@ -44,5 +44,5 @@ html = html.replace(/<script type="module" src="modules\/main\.js[^"]*"><\/scrip
 fs.mkdirSync(outDir, { recursive: true });
 const outFile = path.join(outDir, 'Ascii_Dungeon_Crawler.html');
 fs.writeFileSync(outFile, html);
-fs.writeFileSync(path.join(outDir, 'Run_Game.cmd'), '@echo off\r\ncd /d "%~dp0"\r\nstart "" "Ascii_Dungeon_Crawler.html"\r\n');
+fs.writeFileSync(path.join(outDir, 'Run_Game_Ascii_Dungeon_Crawler.cmd'), '@echo off\r\ncd /d "%~dp0"\r\nstart "" "Ascii_Dungeon_Crawler.html"\r\n');
 console.log(`built ${outFile} (${(html.length / 1024).toFixed(0)} KB, ${order.length} modules inlined)`);
