@@ -4,12 +4,20 @@ A party-based ASCII dungeon crawler that runs in the browser. Supports local pla
 
 ## Quick start
 
+Double-click **`Run_Game.cmd`**. It installs dependencies on first run, starts the local server and opens the game in your browser. Keep its window open while you play.
+
+Or by hand:
+
 ```bash
 npm install
 npm start
 ```
 
-Then open the printed local URL in your browser (e.g. http://localhost:8080/crawler.html).
+Then open http://localhost:8080/crawler.html. The game must be served over http: opening `crawler.html` straight from the disk shows a help screen instead of the game, because browsers block ES modules from `file://`.
+
+### Single-file edition
+
+Want to play from a double-click with no server? Use **Ascii Dungeon Crawler**, the single-file edition built from this code with `node build-single-file.cjs`. It is identical except that networking is removed: https://github.com/infinitelyeducated-bot/Ascii_Dungeon_Crawler
 
 ## Controls
 
