@@ -1,5 +1,5 @@
-import { CLASSES, CLASS_SETTINGS, MAX_PARTY_SIZE, MAX_CHARACTER_LEVEL, DIFFICULTIES } from './config.js?v=mvvmi850';
-import { activeMember } from './state.js?v=mvvmi850';
+import { CLASSES, CLASS_SETTINGS, MAX_PARTY_SIZE, MAX_CHARACTER_LEVEL, DIFFICULTIES } from './config.js?v=mvvnjzeo';
+import { activeMember } from './state.js?v=mvvnjzeo';
 
 export function movementAllowance(member) {
     return 10;
@@ -190,4 +190,4 @@ export function adjacentDeadPartyMembers(game, member) {
     );
 }
 
-import { PLAYER_COLORS, PLAYER_MARKERS } from './config.js?v=mvvmi850';
+import { PLAYER_COLORS, PLAYER_MARKERS } from './config.js?v=mvvnjzeo';

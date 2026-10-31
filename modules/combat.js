@@ -1,9 +1,9 @@
-import { POWER_ITEM_DROP_CHANCE, MAX_CHARACTER_LEVEL, ENEMIES, MAX_ENEMY_SCALE_LEVEL, MAX_ENEMY_ATTACK_BONUS, BOSSES, ITEMS } from './config.js?v=mvvmi850';
-import { positionKey } from './utils.js?v=mvvmi850';
-import { pathDistanceWithin } from './pathfinding.js?v=mvvmi850';
-import { addFloatingText } from './ui.js?v=mvvmi850';
-import { activeMember } from './state.js?v=mvvmi850';
-import { playSound } from './audio.js?v=mvvmi850';
+import { POWER_ITEM_DROP_CHANCE, MAX_CHARACTER_LEVEL, ENEMIES, MAX_ENEMY_SCALE_LEVEL, MAX_ENEMY_ATTACK_BONUS, BOSSES, ITEMS } from './config.js?v=mvvnjzeo';
+import { positionKey } from './utils.js?v=mvvnjzeo';
+import { pathDistanceWithin } from './pathfinding.js?v=mvvnjzeo';
+import { addFloatingText } from './ui.js?v=mvvnjzeo';
+import { activeMember } from './state.js?v=mvvnjzeo';
+import { playSound } from './audio.js?v=mvvnjzeo';
 import {
     adjacentPartyMembers,
     adjacentDeadPartyMembers,
@@ -16,7 +16,7 @@ import {
     tickStatusEffects,
     clearStatusEffect,
     hasStatusEffect
-} from './party.js?v=mvvmi850';
+} from './party.js?v=mvvnjzeo';
 
 export function handleTrap(game, x, y, logMessage) {
     const member = activeMember(game);
@@ -539,7 +539,7 @@ export function useItem(game, itemKey, member, logMessage) {
     return true;
 }
 
-import { removeItemFromInventory, setMovementAllowance } from './party.js?v=mvvmi850';
+import { removeItemFromInventory, setMovementAllowance } from './party.js?v=mvvnjzeo';
 
 export function nearestAttackTarget(game, member) {
     if (!member?.position) return null;

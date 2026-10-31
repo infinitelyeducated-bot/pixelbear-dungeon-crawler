@@ -2025,6 +2025,35 @@
         </div>
     </dialog>
 
-    <script type="module" src="modules/main.js?v=mvvmi850"></script>
+    <script>
+    // If the game has not drawn within 4 seconds (stale cached module, blocked
+    // script, etc.), force one cache-busting reload, then show a plain-text
+    // explanation instead of a blank page.
+    (function () {
+        var key = 'pdc-force-reload';
+        window.addEventListener('load', function () {
+            setTimeout(function () {
+                var drew = document.querySelector('#character-sheet-list .character-sheet') || document.querySelector('#dungeon-map-content .map-cell');
+                if (drew) { sessionStorage.removeItem(key); return; }
+                if (!sessionStorage.getItem(key) && location.protocol !== 'file:') {
+                    sessionStorage.setItem(key, '1');
+                    var u = new URL(location.href); u.searchParams.set('nocache', Date.now()); location.replace(u.toString());
+                    return;
+                }
+                var box = document.createElement('div');
+                box.style.cssText = 'position:fixed;inset:0;background:#000;color:#ffcc00;font:16px/1.6 monospace;padding:40px;z-index:99999;overflow:auto';
+                box.id = 'pdc-start-help'; box.innerHTML = '<h2>PixelBear did not start</h2><p>The game script did not run. Most likely causes:</p><ol>' +
+                    '<li>The page was opened as a <b>file://</b> link. Browsers block game modules from local files. Run <b>PLAY.cmd</b> in the game folder and use <b>http://localhost:8080/crawler.html</b>.</li>' +
+                    '<li>An old copy is cached. Press <b>Ctrl+Shift+Delete</b>, clear cached files, then reload.</li>' +
+                    '<li>The local server is not running. Run <b>PLAY.cmd</b> (or <code>npm start</code>).</li></ol>' +
+                    '<p>Protocol: <b>' + location.protocol + '</b> &nbsp; Page build: <b>' + ((document.querySelector('script[type=module]') || {}).src || '?') + '</b></p>' +
+                    '<p>Error (if any): <b>' + (window.__pdcLastError || 'none captured') + '</b></p>';
+                document.body.appendChild(box);
+            }, 4000);
+        });
+        window.addEventListener('error', function (e) { window.__pdcLastError = e.message || String(e); }, true);
+    })();
+    </script>
+    <script type="module" src="modules/main.js?v=mvvnjzeo"></script>
 </body>
 </html>

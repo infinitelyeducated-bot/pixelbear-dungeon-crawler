@@ -1,14 +1,14 @@
-import { createGame, createPartyMember, activeMember, persistSnapshot, loadStoredSnapshot, saveSnapshot, listSaveSlots, saveSlot, loadSlot, deleteSlot } from './state.js?v=mvvmi850';
-import { generateMap, storeActiveFloor, loadMemberFloor, setPartyFormation, isWalkable, placeNewMember } from './map.js?v=mvvmi850';
-import { applyCharacterClass, updateDerivedStats, setMovementAllowance, getDifficultySettings, adjacentDeadPartyMembers } from './party.js?v=mvvmi850';
-import { createLogger } from './log.js?v=mvvmi850';
-import { LayoutManager } from './layout.js?v=mvvmi850';
-import { NetworkManager } from './network.js?v=mvvmi850';
-import { renderMap, renderLegend, updateActionButtons, renderCharacterSheets, updateMapSizing, centerMapOnActiveMember, renderMinimap, renderTurnOrder, renderFloatingTexts, updateFloatingTexts, renderTopPartyRow } from './ui.js?v=mvvmi850';
-import { bindInput } from './input.js?v=mvvmi850';
-import { handleRemoteAction, sendLocalAction, confirmLocalAction, rejectLocalAction } from './network-actions.js?v=mvvmi850';
-import { nearestAttackTarget } from './combat.js?v=mvvmi850';
-import { MAX_PARTY_SIZE, CLASSES, DIFFICULTIES, ITEMS } from './config.js?v=mvvmi850';
+import { createGame, createPartyMember, activeMember, persistSnapshot, loadStoredSnapshot, saveSnapshot, listSaveSlots, saveSlot, loadSlot, deleteSlot } from './state.js?v=mvvnjzeo';
+import { generateMap, storeActiveFloor, loadMemberFloor, setPartyFormation, isWalkable, placeNewMember } from './map.js?v=mvvnjzeo';
+import { applyCharacterClass, updateDerivedStats, setMovementAllowance, getDifficultySettings, adjacentDeadPartyMembers } from './party.js?v=mvvnjzeo';
+import { createLogger } from './log.js?v=mvvnjzeo';
+import { LayoutManager } from './layout.js?v=mvvnjzeo';
+import { NetworkManager } from './network.js?v=mvvnjzeo';
+import { renderMap, renderLegend, updateActionButtons, renderCharacterSheets, updateMapSizing, centerMapOnActiveMember, renderMinimap, renderTurnOrder, renderFloatingTexts, updateFloatingTexts, renderTopPartyRow } from './ui.js?v=mvvnjzeo';
+import { bindInput } from './input.js?v=mvvnjzeo';
+import { handleRemoteAction, sendLocalAction, confirmLocalAction, rejectLocalAction } from './network-actions.js?v=mvvnjzeo';
+import { nearestAttackTarget } from './combat.js?v=mvvnjzeo';
+import { MAX_PARTY_SIZE, CLASSES, DIFFICULTIES, ITEMS } from './config.js?v=mvvnjzeo';
 
 let game = createGame();
 let gameLog = [];
@@ -89,7 +89,7 @@ function renderInventoryPanel(game) {
         btn.title = item.description;
         btn.disabled = member.hp <= 0 || game.gameOver;
         btn.addEventListener('click', () => {
-            import('./actions.js?v=mvvmi850').then(m => {
+            import('./actions.js?v=mvvnjzeo').then(m => {
                 m.useInventoryItem(game, key, logMessage, updateUI, broadcast);
             });
         });
@@ -290,7 +290,7 @@ function setupNetworkHandlers() {
         if (!networkManager.isHost) {
             sendLocalAction(networkManager, 'endTurn', {});
         } else {
-            import('./actions.js?v=mvvmi850').then(m => m.finishTurn(game, logMessage, updateUI, broadcast));
+            import('./actions.js?v=mvvnjzeo').then(m => m.finishTurn(game, logMessage, updateUI, broadcast));
         }
     });
 }
@@ -491,11 +491,11 @@ function bindGameUI() {
         setStartingPoints(event.target);
     });
     document.getElementById('difficulty-select')?.addEventListener('change', event => {
-        import('./actions.js?v=mvvmi850').then(m => m.setGameDifficulty(game, event.target.value, logMessage));
+        import('./actions.js?v=mvvnjzeo').then(m => m.setGameDifficulty(game, event.target.value, logMessage));
         updateUI();
     });
     document.getElementById('formation-select')?.addEventListener('change', event => {
-        import('./actions.js?v=mvvmi850').then(m => m.setFormation(game, event.target.value, logMessage));
+        import('./actions.js?v=mvvnjzeo').then(m => m.setFormation(game, event.target.value, logMessage));
         updateUI();
     });
     document.getElementById('resume-button')?.addEventListener('click', () => {
@@ -572,7 +572,7 @@ function bindGameUI() {
     document.getElementById('descend-button')?.addEventListener('click', () => {
         const member = activeMember(game);
         if (member) {
-            import('./actions.js?v=mvvmi850').then(m => {
+            import('./actions.js?v=mvvnjzeo').then(m => {
                 m.descendFloor(game, member, logMessage);
                 updateUI();
             });
@@ -766,8 +766,8 @@ function refreshPartySetupMap() {
     // placeholder for any party-change map adjustments
 }
 
-import { movementAllowance } from './party.js?v=mvvmi850';
-import { removePartyMember } from './party.js?v=mvvmi850';
+import { movementAllowance } from './party.js?v=mvvnjzeo';
+import { removePartyMember } from './party.js?v=mvvnjzeo';
 
 function startFloatingTextLoop() {
     let last = performance.now();
@@ -781,10 +781,10 @@ function startFloatingTextLoop() {
     requestAnimationFrame(frame);
 }
 
-import { initAudio, playSound } from './audio.js?v=mvvmi850';
-import { DICE, rollDice, onGameRoll } from './dice.js?v=mvvmi850';
-import { castAbility } from './actions.js?v=mvvmi850';
-import { ABILITIES, ensureAbilityState, spellCharges } from './abilities.js?v=mvvmi850';
+import { initAudio, playSound } from './audio.js?v=mvvnjzeo';
+import { DICE, rollDice, onGameRoll } from './dice.js?v=mvvnjzeo';
+import { castAbility } from './actions.js?v=mvvnjzeo';
+import { ABILITIES, ensureAbilityState, spellCharges } from './abilities.js?v=mvvnjzeo';
 
 function bindAudioControls() {
     initAudio();
